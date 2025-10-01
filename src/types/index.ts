@@ -64,9 +64,9 @@ export interface SpaceContextType {
 
 export interface ReservationContextType {
   reservations: Reservation[];
-  addReservation: (reservation: Omit<Reservation, 'id' | 'createdAt' | 'status'>) => boolean;
+  addReservation: (reservation: Omit<Reservation, 'id' | 'createdAt' | 'status'>) => Promise<boolean>;
   cancelReservation: (id: string) => void;
   getUserReservations: (userId: string) => Reservation[];
   getSpaceReservations: (spaceId: string, date?: string) => Reservation[];
-  isTimeSlotAvailable: (spaceId: string, date: string, startTime: string, endTime: string) => boolean;
+  isTimeSlotAvailable: (spaceId: string, date: string, startTime: string, endTime: string) => Promise<boolean>;
 }

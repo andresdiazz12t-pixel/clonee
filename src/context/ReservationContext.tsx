@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Reservation, ReservationContextType } from '../types';
-import { storage, STORAGE_KEYS, generateId } from '../utils/storage';
+import { supabase } from '../lib/supabase';
 import { timeToMinutes } from '../utils/dateUtils';
-import { sampleReservations } from '../data/initialData';
 
 const ReservationContext = createContext<ReservationContextType | undefined>(undefined);
 
@@ -22,48 +21,86 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
   const [reservations, setReservations] = useState<Reservation[]>([]);
 
   useEffect(() => {
-    initializeReservations();
+    loadReservations();
+
+    const channel = supabase
+      .channel('reservations-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
+        loadReservations();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const initializeReservations = () => {
-    const savedReservations = storage.get<Reservation[]>(STORAGE_KEYS.RESERVATIONS);
-    if (savedReservations) {
-      setReservations(savedReservations);
-    } else {
-      setReservations(sampleReservations);
-      storage.set(STORAGE_KEYS.RESERVATIONS, sampleReservations);
+  const loadReservations = async () => {
+    const { data } = await supabase
+      .from('reservations')
+      .select(`
+        *,
+        spaces(name),
+        profiles(username, full_name, phone)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      const formattedReservations: Reservation[] = data.map(reservation => ({
+        id: reservation.id,
+        spaceId: reservation.space_id,
+        spaceName: (reservation.spaces as any)?.name || '',
+        userId: reservation.user_id,
+        userName: (reservation.profiles as any)?.full_name || '',
+        userContact: (reservation.profiles as any)?.phone || '',
+        date: reservation.date,
+        startTime: reservation.start_time,
+        endTime: reservation.end_time,
+        event: reservation.event,
+        status: reservation.status as any,
+        createdAt: reservation.created_at
+      }));
+      setReservations(formattedReservations);
     }
   };
 
-  const addReservation = (reservationData: Omit<Reservation, 'id' | 'createdAt' | 'status'>): boolean => {
-    // Check if time slot is available
-    if (!isTimeSlotAvailable(reservationData.spaceId, reservationData.date, reservationData.startTime, reservationData.endTime)) {
+  const addReservation = async (reservationData: Omit<Reservation, 'id' | 'createdAt' | 'status'>): Promise<boolean> => {
+    if (!await isTimeSlotAvailable(reservationData.spaceId, reservationData.date, reservationData.startTime, reservationData.endTime)) {
       return false;
     }
 
-    const newReservation: Reservation = {
-      ...reservationData,
-      id: generateId(),
-      status: 'confirmed',
-      createdAt: new Date().toISOString()
-    };
+    const { error } = await supabase
+      .from('reservations')
+      .insert({
+        space_id: reservationData.spaceId,
+        user_id: reservationData.userId,
+        date: reservationData.date,
+        start_time: reservationData.startTime,
+        end_time: reservationData.endTime,
+        event: reservationData.event,
+        status: 'confirmed'
+      });
 
-    const updatedReservations = [...reservations, newReservation];
-    setReservations(updatedReservations);
-    storage.set(STORAGE_KEYS.RESERVATIONS, updatedReservations);
-    return true;
+    if (!error) {
+      await loadReservations();
+      return true;
+    }
+    return false;
   };
 
-  const cancelReservation = (id: string) => {
-    const updatedReservations = reservations.map(reservation =>
-      reservation.id === id ? { ...reservation, status: 'cancelled' as const } : reservation
-    );
-    setReservations(updatedReservations);
-    storage.set(STORAGE_KEYS.RESERVATIONS, updatedReservations);
+  const cancelReservation = async (id: string) => {
+    const { error } = await supabase
+      .from('reservations')
+      .update({ status: 'cancelled' })
+      .eq('id', id);
+
+    if (!error) {
+      await loadReservations();
+    }
   };
 
   const getUserReservations = (userId: string): Reservation[] => {
-    return reservations.filter(reservation => 
+    return reservations.filter(reservation =>
       reservation.userId === userId && reservation.status !== 'cancelled'
     ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   };
@@ -77,17 +114,23 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
     });
   };
 
-  const isTimeSlotAvailable = (spaceId: string, date: string, startTime: string, endTime: string): boolean => {
-    const spaceReservations = getSpaceReservations(spaceId, date);
-    
+  const isTimeSlotAvailable = async (spaceId: string, date: string, startTime: string, endTime: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from('reservations')
+      .select('start_time, end_time')
+      .eq('space_id', spaceId)
+      .eq('date', date)
+      .neq('status', 'cancelled');
+
+    if (!data || data.length === 0) return true;
+
     const requestStartMinutes = timeToMinutes(startTime);
     const requestEndMinutes = timeToMinutes(endTime);
 
-    return !spaceReservations.some(reservation => {
-      const reservationStartMinutes = timeToMinutes(reservation.startTime);
-      const reservationEndMinutes = timeToMinutes(reservation.endTime);
+    return !data.some(reservation => {
+      const reservationStartMinutes = timeToMinutes(reservation.start_time);
+      const reservationEndMinutes = timeToMinutes(reservation.end_time);
 
-      // Check for any overlap
       return (
         (requestStartMinutes >= reservationStartMinutes && requestStartMinutes < reservationEndMinutes) ||
         (requestEndMinutes > reservationStartMinutes && requestEndMinutes <= reservationEndMinutes) ||

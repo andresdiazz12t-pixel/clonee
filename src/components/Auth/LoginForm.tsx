@@ -11,7 +11,7 @@ const LoginForm: React.FC = () => {
   const [error, setError] = useState('');
 
   const [loginData, setLoginData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
 
@@ -28,7 +28,7 @@ const LoginForm: React.FC = () => {
     setLoading(true);
     setError('');
 
-    const success = await login(loginData.username, loginData.password);
+    const success = await login(loginData.email, loginData.password);
     if (!success) {
       setError('Usuario o contraseña incorrectos');
     }
@@ -101,14 +101,14 @@ const LoginForm: React.FC = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Usuario
+                Email
               </label>
               <input
-                type="text"
-                value={loginData.username}
-                onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                type="email"
+                value={loginData.email}
+                onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ingrese su usuario"
+                placeholder="Ingrese su email"
                 required
               />
             </div>
@@ -146,9 +146,8 @@ const LoginForm: React.FC = () => {
 
             <div className="mt-4 p-3 bg-blue-50 rounded-md">
               <p className="text-sm text-blue-800">
-                <strong>Cuenta de prueba:</strong><br />
-                Usuario: admin<br />
-                Contraseña: admin123
+                <strong>Nota:</strong><br />
+                Crea una cuenta de administrador usando el email y contraseña deseados.
               </p>
             </div>
           </form>

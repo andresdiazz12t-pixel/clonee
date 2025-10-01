@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType, RegisterData } from '../types';
-import { storage, STORAGE_KEYS, generateId } from '../utils/storage';
-import { initialAdminUser } from '../data/initialData';
+import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -26,69 +25,107 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const initializeAuth = () => {
-    // Initialize with admin user if no users exist
-    const existingUsers = storage.get<User[]>(STORAGE_KEYS.USERS) || [];
-    if (existingUsers.length === 0) {
-      storage.set(STORAGE_KEYS.USERS, [initialAdminUser]);
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+      } else {
+        setIsLoading(false);
+      }
+    });
 
-    // Check for existing session
-    const savedUser = storage.get<User>(STORAGE_KEYS.USER);
-    if (savedUser) {
-      setUser(savedUser);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+      } else {
+        setUser(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  };
+
+  const loadUserProfile = async (userId: string) => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profile) {
+      const userData: User = {
+        id: profile.id,
+        username: profile.username,
+        email: '',
+        fullName: profile.full_name,
+        phone: profile.phone,
+        role: profile.role,
+        createdAt: profile.created_at
+      };
+
+      const { data: authUser } = await supabase.auth.getUser();
+      if (authUser.user?.email) {
+        userData.email = authUser.user.email;
+      }
+
+      setUser(userData);
     }
     setIsLoading(false);
   };
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    const users = storage.get<User[]>(STORAGE_KEYS.USERS) || [];
-    
-    // Simple password check (in real app, use proper hashing)
-    let foundUser: User | undefined;
-    
-    if (username === 'admin' && password === 'admin123') {
-      foundUser = users.find(u => u.username === 'admin') || initialAdminUser;
-    } else {
-      foundUser = users.find(u => u.username === username && u.username === password);
-    }
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    if (foundUser) {
-      setUser(foundUser);
-      storage.set(STORAGE_KEYS.USER, foundUser);
-      return true;
+      if (error) throw error;
+
+      if (data.user) {
+        await loadUserProfile(data.user.id);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
   };
 
   const register = async (userData: RegisterData): Promise<boolean> => {
-    const users = storage.get<User[]>(STORAGE_KEYS.USERS) || [];
-    
-    // Check if username or email already exists
-    if (users.some(u => u.username === userData.username || u.email === userData.email)) {
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) return false;
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          username: userData.username,
+          full_name: userData.fullName,
+          phone: userData.phone,
+          role: 'user'
+        });
+
+      if (profileError) throw profileError;
+
+      await loadUserProfile(authData.user.id);
+      return true;
+    } catch (error) {
+      console.error('Registration error:', error);
       return false;
     }
-
-    const newUser: User = {
-      id: generateId(),
-      username: userData.username,
-      email: userData.email,
-      fullName: userData.fullName,
-      phone: userData.phone,
-      role: 'user',
-      createdAt: new Date().toISOString()
-    };
-
-    users.push(newUser);
-    storage.set(STORAGE_KEYS.USERS, users);
-    
-    setUser(newUser);
-    storage.set(STORAGE_KEYS.USER, newUser);
-    return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    storage.remove(STORAGE_KEYS.USER);
   };
 
   const value: AuthContextType = {

@@ -62,28 +62,29 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
 
   const timeOptions = generateTimeOptions();
 
-  const validateTimeSlot = () => {
+  const validateTimeSlot = async () => {
     if (!formData.startTime || !formData.endTime) return '';
-    
+
     const startMinutes = timeToMinutes(formData.startTime);
     const endMinutes = timeToMinutes(formData.endTime);
-    
+
     if (startMinutes >= endMinutes) {
       return 'La hora de fin debe ser posterior a la hora de inicio';
     }
-    
+
     if (endMinutes - startMinutes > 4 * 60) {
       return 'La reserva no puede exceder 4 horas';
     }
-    
+
     if (endMinutes - startMinutes < 60) {
       return 'La reserva mínima es de 1 hora';
     }
 
-    if (!isTimeSlotAvailable(spaceId, formData.date, formData.startTime, formData.endTime)) {
+    const available = await isTimeSlotAvailable(spaceId, formData.date, formData.startTime, formData.endTime);
+    if (!available) {
       return 'El horario seleccionado no está disponible';
     }
-    
+
     return '';
   };
 
@@ -92,7 +93,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
     setLoading(true);
     setError('');
 
-    const validationError = validateTimeSlot();
+    const validationError = await validateTimeSlot();
     if (validationError) {
       setError(validationError);
       setLoading(false);
@@ -122,8 +123,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
       event: formData.event,
     };
 
-    const success = addReservation(reservationData);
-    
+    const success = await addReservation(reservationData);
+
     if (success) {
       setSuccess(true);
       setTimeout(() => {

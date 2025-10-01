@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Space, SpaceContextType } from '../types';
-import { storage, STORAGE_KEYS, generateId } from '../utils/storage';
-import { initialSpaces } from '../data/initialData';
+import { supabase } from '../lib/supabase';
 
 const SpaceContext = createContext<SpaceContextType | undefined>(undefined);
 
@@ -21,42 +20,99 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
 
   useEffect(() => {
-    initializeSpaces();
+    loadSpaces();
+
+    const channel = supabase
+      .channel('spaces-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'spaces' }, () => {
+        loadSpaces();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const initializeSpaces = () => {
-    const savedSpaces = storage.get<Space[]>(STORAGE_KEYS.SPACES);
-    if (savedSpaces) {
-      setSpaces(savedSpaces);
-    } else {
-      setSpaces(initialSpaces);
-      storage.set(STORAGE_KEYS.SPACES, initialSpaces);
+  const loadSpaces = async () => {
+    const { data } = await supabase
+      .from('spaces')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      const formattedSpaces: Space[] = data.map(space => ({
+        id: space.id,
+        name: space.name,
+        type: space.type as any,
+        capacity: space.capacity,
+        description: space.description,
+        operatingHours: {
+          start: space.operating_hours_start,
+          end: space.operating_hours_end
+        },
+        rules: space.rules || [],
+        isActive: space.is_active,
+        imageUrl: space.image_url || undefined
+      }));
+      setSpaces(formattedSpaces);
     }
   };
 
-  const addSpace = (spaceData: Omit<Space, 'id'>) => {
-    const newSpace: Space = {
-      ...spaceData,
-      id: generateId()
-    };
-    
-    const updatedSpaces = [...spaces, newSpace];
-    setSpaces(updatedSpaces);
-    storage.set(STORAGE_KEYS.SPACES, updatedSpaces);
+  const addSpace = async (spaceData: Omit<Space, 'id'>) => {
+    const { error } = await supabase
+      .from('spaces')
+      .insert({
+        name: spaceData.name,
+        type: spaceData.type,
+        capacity: spaceData.capacity,
+        description: spaceData.description,
+        operating_hours_start: spaceData.operatingHours.start,
+        operating_hours_end: spaceData.operatingHours.end,
+        rules: spaceData.rules,
+        is_active: spaceData.isActive,
+        image_url: spaceData.imageUrl
+      });
+
+    if (!error) {
+      await loadSpaces();
+    }
   };
 
-  const updateSpace = (id: string, spaceData: Partial<Space>) => {
-    const updatedSpaces = spaces.map(space =>
-      space.id === id ? { ...space, ...spaceData } : space
-    );
-    setSpaces(updatedSpaces);
-    storage.set(STORAGE_KEYS.SPACES, updatedSpaces);
+  const updateSpace = async (id: string, spaceData: Partial<Space>) => {
+    const updateData: any = {};
+
+    if (spaceData.name !== undefined) updateData.name = spaceData.name;
+    if (spaceData.type !== undefined) updateData.type = spaceData.type;
+    if (spaceData.capacity !== undefined) updateData.capacity = spaceData.capacity;
+    if (spaceData.description !== undefined) updateData.description = spaceData.description;
+    if (spaceData.operatingHours !== undefined) {
+      updateData.operating_hours_start = spaceData.operatingHours.start;
+      updateData.operating_hours_end = spaceData.operatingHours.end;
+    }
+    if (spaceData.rules !== undefined) updateData.rules = spaceData.rules;
+    if (spaceData.isActive !== undefined) updateData.is_active = spaceData.isActive;
+    if (spaceData.imageUrl !== undefined) updateData.image_url = spaceData.imageUrl;
+
+    const { error } = await supabase
+      .from('spaces')
+      .update(updateData)
+      .eq('id', id);
+
+    if (!error) {
+      await loadSpaces();
+    }
   };
 
-  const deleteSpace = (id: string) => {
-    const updatedSpaces = spaces.filter(space => space.id !== id);
-    setSpaces(updatedSpaces);
-    storage.set(STORAGE_KEYS.SPACES, updatedSpaces);
+  const deleteSpace = async (id: string) => {
+    const { error } = await supabase
+      .from('spaces')
+      .delete()
+      .eq('id', id);
+
+    if (!error) {
+      await loadSpaces();
+    }
   };
 
   const getSpace = (id: string): Space | undefined => {
