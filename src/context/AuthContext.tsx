@@ -48,10 +48,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (profile) {
-        const userData: User = {
+        setUser({
           id: profile.id,
           username: profile.username,
-          email: '',
+          email: profile.email,
           fullName: profile.full_name,
           phone: profile.phone,
           role: profile.role,
@@ -151,6 +151,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           id: authData.user.id,
           username: userData.username,
           full_name: userData.fullName,
+          email: userData.email,
           phone: userData.phone,
           role: 'user',
           is_active: true

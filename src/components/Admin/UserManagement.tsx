@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import type { Database } from '../../lib/database.types';
 
 type UserManagementProps = {
   onBack?: () => void;
@@ -35,7 +36,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         throw fetchError;
       }
 
-      setUsers((data as Profile[]) ?? []);
+      setUsers(data ?? []);
     } catch (fetchErr) {
       const message = fetchErr instanceof Error ? fetchErr.message : 'No se pudieron cargar los usuarios.';
       setError(message);
