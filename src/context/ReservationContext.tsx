@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Reservation, ReservationContextType } from '../types';
 import { supabase } from '../lib/supabase';
 import { timeToMinutes } from '../utils/dateUtils';
+import { useAuth } from './AuthContext';
 
 const ReservationContext = createContext<ReservationContextType | undefined>(undefined);
 
@@ -20,31 +21,27 @@ interface ReservationProviderProps {
 export const ReservationProvider: React.FC<ReservationProviderProps> = ({ children }) => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [reservationsError, setReservationsError] = useState<string | null>(null);
+  const { user, isLoading: isAuthLoading } = useAuth();
 
-  useEffect(() => {
-    loadReservations();
+  const loadReservations = useCallback(async () => {
+    if (!user) {
+      setReservations([]);
+      return;
+    }
 
-    const channel = supabase
-      .channel('reservations-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
-        loadReservations();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const loadReservations = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('reservations')
       .select(`
         *,
         spaces(name),
         profiles(username, full_name, phone)
-      `)
-      .order('created_at', { ascending: false });
+      `);
+
+    if (user.role !== 'admin') {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error loading reservations:', error);
@@ -70,7 +67,32 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
       setReservations(formattedReservations);
       setReservationsError(null);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!user) {
+      setReservations([]);
+      setReservationsError(null);
+      return;
+    }
+
+    loadReservations();
+
+    const channel = supabase
+      .channel('reservations-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
+        loadReservations();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAuthLoading, loadReservations, user]);
 
   const addReservation = async (reservationData: Omit<Reservation, 'id' | 'createdAt' | 'status'>): Promise<boolean> => {
     if (!await isTimeSlotAvailable(reservationData.spaceId, reservationData.date, reservationData.startTime, reservationData.endTime)) {
