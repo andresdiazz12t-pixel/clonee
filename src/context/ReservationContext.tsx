@@ -19,6 +19,7 @@ interface ReservationProviderProps {
 
 export const ReservationProvider: React.FC<ReservationProviderProps> = ({ children }) => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservationsError, setReservationsError] = useState<string | null>(null);
 
   useEffect(() => {
     loadReservations();
@@ -36,7 +37,7 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
   }, []);
 
   const loadReservations = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('reservations')
       .select(`
         *,
@@ -44,6 +45,12 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
         profiles(username, full_name, phone)
       `)
       .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading reservations:', error);
+      setReservationsError('No se pudieron cargar las reservas. Por favor, intenta nuevamente.');
+      return;
+    }
 
     if (data) {
       const formattedReservations: Reservation[] = data.map(reservation => ({
@@ -61,6 +68,7 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
         createdAt: reservation.created_at
       }));
       setReservations(formattedReservations);
+      setReservationsError(null);
     }
   };
 
@@ -85,6 +93,9 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
       await loadReservations();
       return true;
     }
+    
+    console.error('Error adding reservation:', error);
+    setReservationsError('No se pudo crear la reserva. Intenta nuevamente.');
     return false;
   };
 
@@ -96,7 +107,11 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
 
     if (!error) {
       await loadReservations();
+      return;
     }
+
+    console.error('Error cancelling reservation:', error);
+    setReservationsError('No se pudo cancelar la reserva. Por favor, intenta nuevamente.');
   };
 
   const getUserReservations = (userId: string): Reservation[] => {
@@ -141,6 +156,8 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
 
   const value: ReservationContextType = {
     reservations,
+    reservationsError,
+    reloadReservations: loadReservations,
     addReservation,
     cancelReservation,
     getUserReservations,

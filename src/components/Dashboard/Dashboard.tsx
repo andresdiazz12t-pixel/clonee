@@ -12,7 +12,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
   const { user } = useAuth();
   const { spaces } = useSpaces();
-  const { reservations, getUserReservations } = useReservations();
+  const { reservations, reservationsError, reloadReservations, getUserReservations } = useReservations();
 
   if (!user) return null;
 
@@ -59,6 +59,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
           }
         </p>
       </div>
+
+      {reservationsError && (
+        <div className="mb-8 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
+          <p className="font-medium">{reservationsError}</p>
+          <button
+            onClick={reloadReservations}
+            className="mt-3 inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

@@ -10,7 +10,7 @@ interface ReservationsListProps {
 
 const ReservationsList: React.FC<ReservationsListProps> = ({ isAdminView = false }) => {
   const { user } = useAuth();
-  const { reservations, cancelReservation, getUserReservations } = useReservations();
+  const { reservations, reservationsError, reloadReservations, cancelReservation, getUserReservations } = useReservations();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
 
@@ -75,12 +75,24 @@ const ReservationsList: React.FC<ReservationsListProps> = ({ isAdminView = false
           {isAdminView ? 'Todas las Reservas' : 'Mis Reservas'}
         </h1>
         <p className="text-gray-600 mt-2">
-          {isAdminView 
+          {isAdminView
             ? 'Gestiona todas las reservas del sistema'
             : 'Administra tus reservas de espacios comunitarios'
           }
         </p>
       </div>
+
+      {reservationsError && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
+          <p className="font-medium">{reservationsError}</p>
+          <button
+            onClick={reloadReservations}
+            className="mt-3 inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-6 mb-8">
