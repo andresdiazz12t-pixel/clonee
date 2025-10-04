@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, Clock, MapPin, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSpaces } from '../../context/SpaceContext';
 import { useReservations } from '../../context/ReservationContext';
 import { formatDate, isToday, isTomorrow } from '../../utils/dateUtils';
+import { supabase } from '../../lib/supabase';
 
 interface DashboardProps {
   onViewChange: (view: string) => void;
@@ -13,6 +14,43 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
   const { user } = useAuth();
   const { spaces } = useSpaces();
   const { reservations, reservationsError, reloadReservations, getUserReservations } = useReservations();
+  const [userCount, setUserCount] = useState<number | null>(null);
+  const [isLoadingUserCount, setIsLoadingUserCount] = useState<boolean>(true);
+  const [userCountError, setUserCountError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUserCount = async () => {
+      setIsLoadingUserCount(true);
+      try {
+        const { error, count } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+
+        if (error) throw error;
+
+        if (isMounted) {
+          setUserCount(count ?? 0);
+          setUserCountError(null);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setUserCountError('No se pudo obtener el total de usuarios registrados.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingUserCount(false);
+        }
+      }
+    };
+
+    fetchUserCount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   if (!user) return null;
 
@@ -28,7 +66,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
         { label: 'Espacios Activos', value: activeSpaces.length, icon: MapPin, color: 'blue' },
         { label: 'Reservas Hoy', value: todayReservations.length, icon: Calendar, color: 'green' },
         { label: 'Total Reservas', value: reservations.filter(r => r.status !== 'cancelled').length, icon: Users, color: 'purple' },
-        { label: 'Usuarios Registrados', value: 25, icon: Users, color: 'orange' },
+        {
+          label: 'Usuarios Registrados',
+          value: isLoadingUserCount ? '...' : userCount ?? 0,
+          icon: Users,
+          color: 'orange',
+        },
       ]
     : [
         { label: 'Mis Reservas', value: userReservations.length, icon: Calendar, color: 'blue' },
@@ -69,6 +112,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
           >
             Reintentar
           </button>
+        </div>
+      )}
+
+      {userCountError && (
+        <div className="mb-8 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg p-4">
+          <p className="font-medium">{userCountError}</p>
         </div>
       )}
 
