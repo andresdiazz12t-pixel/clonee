@@ -144,12 +144,6 @@ const LoginForm: React.FC = () => {
               {loading ? 'Ingresando...' : 'Iniciar Sesión'}
             </button>
 
-            <div className="mt-4 p-3 bg-blue-50 rounded-md">
-              <p className="text-sm text-blue-800">
-                <strong>Nota:</strong><br />
-                Crea una cuenta de administrador usando el email y contraseña deseados.
-              </p>
-            </div>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="space-y-4">
