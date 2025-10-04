@@ -13,6 +13,7 @@ type Profile = {
   phone: string | null;
   role: 'admin' | 'user' | null;
   created_at: string | null;
+  is_active: boolean | null;
 };
 
 const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
@@ -27,7 +28,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
       setError(null);
       const { data, error: fetchError } = await supabase
         .from('profiles')
-        .select('id, full_name, email, phone, role, created_at')
+        .select('id, full_name, email, phone, role, is_active, created_at')
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -74,25 +75,30 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     }
   };
 
-  const handleDeactivateUser = async (user: Profile) => {
+  const handleToggleActive = async (user: Profile) => {
     if (!user.id) return;
+
+    const currentState = user.is_active ?? false;
+    const nextState = !currentState;
 
     try {
       setUpdatingUserId(user.id);
       setError(null);
-      const { error: deactivateError } = await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
-        .update({ is_active: false } as Record<string, unknown>)
+        .update({ is_active: nextState })
         .eq('id', user.id);
 
-      if (deactivateError) {
-        throw deactivateError;
+      if (updateError) {
+        throw updateError;
       }
 
       await fetchUsers();
-    } catch (deactivateErr) {
+    } catch (updateErr) {
       const message =
-        deactivateErr instanceof Error ? deactivateErr.message : 'No se pudo desactivar al usuario seleccionado.';
+        updateErr instanceof Error
+          ? updateErr.message
+          : 'No se pudo actualizar el estado del usuario seleccionado.';
       setError(message);
     } finally {
       setUpdatingUserId(null);
@@ -135,36 +141,55 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         )}
 
         {!loading && !error &&
-          users.map((user) => (
-            <div key={user.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <p className="font-medium text-gray-900">{user.full_name ?? 'Sin nombre'}</p>
-                <p className="text-sm text-gray-500">{user.email ?? 'Sin correo'}</p>
-                <p className="text-sm text-gray-400">
-                  Registrado el {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/D'}
-                </p>
+          users.map((user) => {
+            const isActive = user.is_active ?? false;
+
+            return (
+              <div key={user.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <p className="font-medium text-gray-900">{user.full_name ?? 'Sin nombre'}</p>
+                  <p className="text-sm text-gray-500">{user.email ?? 'Sin correo'}</p>
+                  <p className="text-sm text-gray-400">
+                    Registrado el {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/D'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-600">
+                    Rol: {user.role ?? 'N/D'}
+                  </span>
+                  <span
+                    className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                      isActive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                    }`}
+                  >
+                  Estado: {isActive ? 'Activo' : 'Inactivo'}
+                  </span>
+                  <button
+                    onClick={() => handleToggleRole(user)}
+                    disabled={updatingUserId === user.id}
+                    className="px-3 py-1 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {updatingUserId === user.id ? 'Actualizando...' : 'Cambiar rol'}
+                  </button>
+                  <button
+                    onClick={() => handleToggleActive(user)}
+                    disabled={updatingUserId === user.id}
+                    className={`px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isActive
+                        ? 'text-red-600 border-red-200 hover:bg-red-50'
+                        : 'text-green-600 border-green-200 hover:bg-green-50'
+                    }`}
+                  >
+                    {updatingUserId === user.id
+                      ? 'Actualizando...'
+                    : isActive
+                      ? 'Desactivar'
+                      : 'Activar'}
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-600">
-                  Rol: {user.role ?? 'N/D'}
-                </span>
-                <button
-                  onClick={() => handleToggleRole(user)}
-                  disabled={updatingUserId === user.id}
-                  className="px-3 py-1 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {updatingUserId === user.id ? 'Actualizando...' : 'Cambiar rol'}
-                </button>
-                <button
-                  onClick={() => handleDeactivateUser(user)}
-                  disabled={updatingUserId === user.id}
-                  className="px-3 py-1 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {updatingUserId === user.id ? 'Actualizando...' : 'Desactivar'}
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
     </div>
   );

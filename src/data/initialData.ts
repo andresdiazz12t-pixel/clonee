@@ -74,7 +74,8 @@ export const initialAdminUser: User = {
   fullName: 'Administrador Principal',
   phone: '+57 300 123 4567',
   role: 'admin',
-  createdAt: new Date().toISOString()
+  createdAt: new Date().toISOString(),
+  isActive: true
 };
 
 export const sampleReservations: Reservation[] = [
