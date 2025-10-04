@@ -8,6 +8,9 @@ import Dashboard from './components/Dashboard/Dashboard';
 import SpacesList from './components/Spaces/SpacesList';
 import ReservationsList from './components/Reservations/ReservationsList';
 import AdminPanel from './components/Admin/AdminPanel';
+import UserManagement from './components/Admin/UserManagement';
+import ReportsPanel from './components/Admin/ReportsPanel';
+import AdvancedSettings from './components/Admin/AdvancedSettings';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -39,7 +42,33 @@ const AppContent: React.FC = () => {
       case 'all-reservations':
         return <ReservationsList isAdminView={true} />;
       case 'admin-panel':
-        return user.role === 'admin' ? <AdminPanel /> : <Dashboard onViewChange={setCurrentView} />;
+        return user.role === 'admin' ? (
+          <AdminPanel
+            onManageUsers={() => setCurrentView('admin-users')}
+            onShowReports={() => setCurrentView('admin-reports')}
+            onOpenAdvancedSettings={() => setCurrentView('admin-advanced-settings')}
+          />
+        ) : (
+          <Dashboard onViewChange={setCurrentView} />
+        );
+      case 'admin-users':
+        return user.role === 'admin' ? (
+          <UserManagement onBack={() => setCurrentView('admin-panel')} />
+        ) : (
+          <Dashboard onViewChange={setCurrentView} />
+        );
+      case 'admin-reports':
+        return user.role === 'admin' ? (
+          <ReportsPanel onBack={() => setCurrentView('admin-panel')} />
+        ) : (
+          <Dashboard onViewChange={setCurrentView} />
+        );
+      case 'admin-advanced-settings':
+        return user.role === 'admin' ? (
+          <AdvancedSettings onBack={() => setCurrentView('admin-panel')} />
+        ) : (
+          <Dashboard onViewChange={setCurrentView} />
+        );
       default:
         return <Dashboard onViewChange={setCurrentView} />;
     }

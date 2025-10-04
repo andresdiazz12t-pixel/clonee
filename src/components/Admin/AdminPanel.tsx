@@ -5,7 +5,17 @@ import { useReservations } from '../../context/ReservationContext';
 import { getTodayLocalISO } from '../../utils/dateUtils';
 import SpaceForm from '../Spaces/SpaceForm';
 
-const AdminPanel: React.FC = () => {
+type AdminPanelProps = {
+  onManageUsers?: () => void;
+  onShowReports?: () => void;
+  onOpenAdvancedSettings?: () => void;
+};
+
+const AdminPanel: React.FC<AdminPanelProps> = ({
+  onManageUsers,
+  onShowReports,
+  onOpenAdvancedSettings,
+}) => {
   const { spaces } = useSpaces();
   const { reservations } = useReservations();
   const [showSpaceForm, setShowSpaceForm] = useState(false);
@@ -206,17 +216,26 @@ const AdminPanel: React.FC = () => {
             Acciones Rápidas
           </h2>
           <div className="space-y-3">
-            <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all">
+            <button
+              onClick={onManageUsers}
+              className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all"
+            >
               <h3 className="font-medium text-gray-900">Gestionar Usuarios</h3>
               <p className="text-sm text-gray-500">Ver y administrar usuarios registrados</p>
             </button>
-            
-            <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all">
+
+            <button
+              onClick={onShowReports}
+              className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all"
+            >
               <h3 className="font-medium text-gray-900">Reportes</h3>
               <p className="text-sm text-gray-500">Generar reportes de uso y ocupación</p>
             </button>
-            
-            <button className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-all">
+
+            <button
+              onClick={onOpenAdvancedSettings}
+              className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-all"
+            >
               <h3 className="font-medium text-gray-900">Configuración Avanzada</h3>
               <p className="text-sm text-gray-500">Ajustar reglas y parámetros del sistema</p>
             </button>
