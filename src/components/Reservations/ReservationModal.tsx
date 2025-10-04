@@ -3,7 +3,7 @@ import { X, Calendar, Clock, User, Save } from 'lucide-react';
 import { useSpaces } from '../../context/SpaceContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useAuth } from '../../context/AuthContext';
-import { timeToMinutes, isTimeInRange } from '../../utils/dateUtils';
+import { timeToMinutes, isTimeInRange, getTodayLocalISO } from '../../utils/dateUtils';
 
 interface ReservationModalProps {
   spaceId: string;
@@ -32,7 +32,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
 
   useEffect(() => {
     // Set minimum date to today
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayLocalISO();
     setFormData(prev => ({ ...prev, date: today }));
   }, []);
 
@@ -196,7 +196,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              min={new Date().toISOString().split('T')[0]}
+              min={getTodayLocalISO()}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />

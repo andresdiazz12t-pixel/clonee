@@ -39,6 +39,10 @@ export const isTimeInRange = (time: string, start: string, end: string): boolean
   const timeMinutes = timeToMinutes(time);
   const startMinutes = timeToMinutes(start);
   const endMinutes = timeToMinutes(end);
-  
+
   return timeMinutes >= startMinutes && timeMinutes <= endMinutes;
+};
+
+export const getTodayLocalISO = (): string => {
+  return new Date().toLocaleDateString('en-CA');
 };

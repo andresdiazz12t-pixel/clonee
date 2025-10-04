@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Settings, BarChart3, Users, MapPin, Calendar, Plus } from 'lucide-react';
 import { useSpaces } from '../../context/SpaceContext';
 import { useReservations } from '../../context/ReservationContext';
+import { getTodayLocalISO } from '../../utils/dateUtils';
 import SpaceForm from '../Spaces/SpaceForm';
 
 const AdminPanel: React.FC = () => {
@@ -12,8 +13,8 @@ const AdminPanel: React.FC = () => {
   const activeSpaces = spaces.filter(space => space.isActive);
   const inactiveSpaces = spaces.filter(space => !space.isActive);
   const totalReservations = reservations.filter(r => r.status !== 'cancelled').length;
-  const todayReservations = reservations.filter(r => 
-    r.date === new Date().toISOString().split('T')[0] && r.status !== 'cancelled'
+  const todayReservations = reservations.filter(r =>
+    r.date === getTodayLocalISO() && r.status !== 'cancelled'
   ).length;
 
   const spaceTypeStats = spaces.reduce((acc, space) => {
