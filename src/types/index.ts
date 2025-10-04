@@ -56,8 +56,8 @@ export interface RegisterData {
 
 export interface SpaceContextType {
   spaces: Space[];
-  addSpace: (space: Omit<Space, 'id'>) => void;
-  updateSpace: (id: string, space: Partial<Space>) => void;
+  addSpace: (space: Omit<Space, 'id'>) => Promise<boolean>;
+  updateSpace: (id: string, space: Partial<Space>) => Promise<boolean>;
   deleteSpace: (id: string) => void;
   getSpace: (id: string) => Space | undefined;
 }
