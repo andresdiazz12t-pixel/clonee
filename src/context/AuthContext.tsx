@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     async (userId: string) => {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('id, username, full_name, email, phone, role, created_at')
+        .select('id, username, full_name, phone, role, is_active, created_at')
         .eq('id', userId)
         .maybeSingle<ProfileRow>();
 
@@ -55,8 +55,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           fullName: profile.full_name,
           phone: profile.phone,
           role: profile.role,
-          createdAt: profile.created_at
-        });
+          createdAt: profile.created_at,
+          isActive: profile.is_active
+        };
+
+        const { data: authUser, error: authError } = await supabase.auth.getUser();
+
+        if (authError) {
+          console.error('Error loading auth user:', authError);
+        } else if (authUser.user?.email) {
+          userData.email = authUser.user.email;
+        }
+
+        setUser(userData);
       }
 
       setIsLoading(false);
@@ -142,7 +153,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           full_name: userData.fullName,
           email: userData.email,
           phone: userData.phone,
-          role: 'user'
+          role: 'user',
+          is_active: true
         });
 
       if (profileError) throw profileError;
