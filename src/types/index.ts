@@ -64,6 +64,8 @@ export interface SpaceContextType {
 
 export interface ReservationContextType {
   reservations: Reservation[];
+  reservationsError: string | null;
+  reloadReservations: () => Promise<void>;
   addReservation: (reservation: Omit<Reservation, 'id' | 'createdAt' | 'status'>) => Promise<boolean>;
   cancelReservation: (id: string) => void;
   getUserReservations: (userId: string) => Reservation[];
