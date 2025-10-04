@@ -14,6 +14,7 @@ export interface Database {
           id: string
           username: string
           full_name: string
+          email: string
           phone: string
           role: 'admin' | 'user'
           created_at: string
@@ -23,6 +24,7 @@ export interface Database {
           id: string
           username: string
           full_name: string
+          email: string
           phone: string
           role?: 'admin' | 'user'
           created_at?: string
@@ -32,6 +34,7 @@ export interface Database {
           id?: string
           username?: string
           full_name?: string
+          email?: string
           phone?: string
           role?: 'admin' | 'user'
           created_at?: string

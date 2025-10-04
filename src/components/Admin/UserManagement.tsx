@@ -1,19 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import type { Database } from '../../lib/database.types';
 
 type UserManagementProps = {
   onBack?: () => void;
 };
 
-type Profile = {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  phone: string | null;
-  role: 'admin' | 'user' | null;
-  created_at: string | null;
-};
+type Profile = Pick<
+  Database['public']['Tables']['profiles']['Row'],
+  'id' | 'full_name' | 'email' | 'phone' | 'role' | 'created_at'
+>;
 
 const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   const [users, setUsers] = useState<Profile[]>([]);
@@ -34,7 +31,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         throw fetchError;
       }
 
-      setUsers((data as Profile[]) ?? []);
+      setUsers(data ?? []);
     } catch (fetchErr) {
       const message = fetchErr instanceof Error ? fetchErr.message : 'No se pudieron cargar los usuarios.';
       setError(message);
@@ -138,8 +135,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
           users.map((user) => (
             <div key={user.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <p className="font-medium text-gray-900">{user.full_name ?? 'Sin nombre'}</p>
-                <p className="text-sm text-gray-500">{user.email ?? 'Sin correo'}</p>
+                <p className="font-medium text-gray-900">{user.full_name || 'Sin nombre'}</p>
+                <p className="text-sm text-gray-500">{user.email || 'Sin correo'}</p>
                 <p className="text-sm text-gray-400">
                   Registrado el {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/D'}
                 </p>
