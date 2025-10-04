@@ -1,5 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useRef,
+  useCallback
+} from 'react';
 import { User, AuthContextType, RegisterData } from '../types';
+import type { Database } from '../lib/database.types';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,12 +31,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    const cleanup = initializeAuth();
-    return cleanup;
-  }, []);
+  type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
-  const initializeAuth = (): () => void => {
+  const loadUserProfile = useCallback(
+    async (userId: string) => {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, phone, role, created_at')
+        .eq('id', userId)
+        .maybeSingle<ProfileRow>();
+
+      if (error) {
+        console.error('Error loading profile:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      if (profile) {
+        const userData: User = {
+          id: profile.id,
+          username: profile.username,
+          email: '',
+          fullName: profile.full_name,
+          phone: profile.phone,
+          role: profile.role,
+          createdAt: profile.created_at
+        };
+
+        const { data: authUser, error: authError } = await supabase.auth.getUser();
+
+        if (authError) {
+          console.error('Error loading auth user:', authError);
+        } else if (authUser.user?.email) {
+          userData.email = authUser.user.email;
+        }
+
+        setUser(userData);
+      }
+
+      setIsLoading(false);
+    },
+    []
+  );
+
+  const initializeAuth = useCallback((): (() => void) => {
     if (cleanupRef.current) {
       cleanupRef.current();
       cleanupRef.current = null;
@@ -60,35 +107,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     cleanupRef.current = cleanup;
 
     return cleanup;
-  };
+  }, [loadUserProfile]);
 
-  const loadUserProfile = async (userId: string) => {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (profile) {
-      const userData: User = {
-        id: profile.id,
-        username: profile.username,
-        email: '',
-        fullName: profile.full_name,
-        phone: profile.phone,
-        role: profile.role,
-        createdAt: profile.created_at
-      };
-
-      const { data: authUser } = await supabase.auth.getUser();
-      if (authUser.user?.email) {
-        userData.email = authUser.user.email;
-      }
-
-      setUser(userData);
-    }
-    setIsLoading(false);
-  };
+  useEffect(() => {
+    const cleanup = initializeAuth();
+    return cleanup;
+  }, [initializeAuth]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
