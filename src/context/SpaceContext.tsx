@@ -44,7 +44,7 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
       const formattedSpaces: Space[] = data.map(space => ({
         id: space.id,
         name: space.name,
-        type: space.type as any,
+        type: space.type as Space['type'],
         capacity: space.capacity,
         description: space.description,
         operatingHours: {
@@ -59,7 +59,7 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
     }
   };
 
-  const addSpace = async (spaceData: Omit<Space, 'id'>) => {
+  const addSpace = async (spaceData: Omit<Space, 'id'>): Promise<boolean> => {
     const { error } = await supabase
       .from('spaces')
       .insert({
@@ -74,13 +74,16 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
         image_url: spaceData.imageUrl
       });
 
-    if (!error) {
-      await loadSpaces();
+    if (error) {
+      throw new Error(error.message || 'No se pudo crear el espacio.');
     }
+
+    await loadSpaces();
+    return true;
   };
 
-  const updateSpace = async (id: string, spaceData: Partial<Space>) => {
-    const updateData: any = {};
+  const updateSpace = async (id: string, spaceData: Partial<Space>): Promise<boolean> => {
+    const updateData: Record<string, unknown> = {};
 
     if (spaceData.name !== undefined) updateData.name = spaceData.name;
     if (spaceData.type !== undefined) updateData.type = spaceData.type;
@@ -99,9 +102,12 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
       .update(updateData)
       .eq('id', id);
 
-    if (!error) {
-      await loadSpaces();
+    if (error) {
+      throw new Error(error.message || 'No se pudo actualizar el espacio.');
     }
+
+    await loadSpaces();
+    return true;
   };
 
   const deleteSpace = async (id: string) => {

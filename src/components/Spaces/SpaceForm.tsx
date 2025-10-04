@@ -11,6 +11,7 @@ interface SpaceFormProps {
 const SpaceForm: React.FC<SpaceFormProps> = ({ space, onClose }) => {
   const { addSpace, updateSpace } = useSpaces();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -53,6 +54,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ space, onClose }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     const rules = rulesInput
       .split('\n')
@@ -61,14 +63,23 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ space, onClose }) => {
 
     const spaceData = { ...formData, rules };
 
-    if (space) {
-      updateSpace(space.id, spaceData);
-    } else {
-      addSpace(spaceData);
-    }
+    try {
+      const wasSuccessful = space
+        ? await updateSpace(space.id, spaceData)
+        : await addSpace(spaceData);
 
-    setLoading(false);
-    onClose();
+      if (wasSuccessful) {
+        onClose();
+      }
+    } catch (submissionError) {
+      const errorMessage =
+        submissionError instanceof Error
+          ? submissionError.message
+          : 'No se pudo guardar el espacio. Inténtalo nuevamente.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -87,6 +98,11 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ space, onClose }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {error && (
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
