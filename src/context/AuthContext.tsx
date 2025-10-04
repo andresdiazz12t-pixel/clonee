@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, AuthContextType, RegisterData } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -20,11 +20,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const cleanupRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
-    initializeAuth();
+    const cleanup = initializeAuth();
+    return cleanup;
   }, []);
 
-  const initializeAuth = () => {
+  const initializeAuth = (): () => void => {
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         loadUserProfile(session.user.id);
@@ -42,7 +50,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    const cleanup = () => {
+      subscription.unsubscribe();
+      if (cleanupRef.current === cleanup) {
+        cleanupRef.current = null;
+      }
+    };
+
+    cleanupRef.current = cleanup;
+
+    return cleanup;
   };
 
   const loadUserProfile = async (userId: string) => {
