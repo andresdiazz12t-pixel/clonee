@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import type { Database } from '../../lib/database.types';
 
 type UserManagementProps = {
   onBack?: () => void;
@@ -12,6 +11,7 @@ type Profile = {
   full_name: string | null;
   email: string | null;
   phone: string | null;
+  identification_number: string | null;
   role: 'admin' | 'user' | null;
   created_at: string | null;
   is_active: boolean | null;
@@ -22,6 +22,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -29,7 +31,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
       setError(null);
       const { data, error: fetchError } = await supabase
         .from('profiles')
-        .select('id, full_name, email, phone, role, is_active, created_at')
+        .select('id, full_name, email, phone, identification_number, role, is_active, created_at')
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -44,6 +46,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
       setLoading(false);
     }
   }, []);
+
+  const filteredUsers = users.filter((user) => {
+    const matchesRole =
+      roleFilter === 'all' ||
+      (roleFilter === 'admin'
+        ? user.role === 'admin'
+        : user.role === 'user' || user.role === null);
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'active' ? user.is_active === true : user.is_active === false);
+
+    return matchesRole && matchesStatus;
+  });
 
   useEffect(() => {
     void fetchUsers();
@@ -128,6 +143,39 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         )}
       </div>
 
+      <div className="bg-white p-4 rounded-lg shadow flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-3 items-center">
+          <label className="text-sm font-medium text-gray-700" htmlFor="role-filter">
+            Filtrar por rol
+          </label>
+          <select
+            id="role-filter"
+            value={roleFilter}
+            onChange={(event) => setRoleFilter(event.target.value as typeof roleFilter)}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">Todos</option>
+            <option value="admin">Administradores</option>
+            <option value="user">Usuarios</option>
+          </select>
+        </div>
+        <div className="flex flex-wrap gap-3 items-center">
+          <label className="text-sm font-medium text-gray-700" htmlFor="status-filter">
+            Estado de cuenta
+          </label>
+          <select
+            id="status-filter"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">Todos</option>
+            <option value="active">Activos</option>
+            <option value="inactive">Inactivos</option>
+          </select>
+        </div>
+      </div>
+
       <div className="bg-white rounded-lg shadow divide-y">
         {loading && (
           <div className="p-6 text-center text-gray-500">Cargando usuarios...</div>
@@ -141,8 +189,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
           <div className="p-6 text-center text-gray-500">No se encontraron usuarios registrados.</div>
         )}
 
+        {!loading && !error && users.length > 0 && filteredUsers.length === 0 && (
+          <div className="p-6 text-center text-gray-500">No hay resultados para los filtros seleccionados.</div>
+        )}
+
         {!loading && !error &&
-          users.map((user) => {
+          filteredUsers.map((user) => {
             const isActive = user.is_active ?? false;
 
             return (
@@ -150,6 +202,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                 <div>
                   <p className="font-medium text-gray-900">{user.full_name ?? 'Sin nombre'}</p>
                   <p className="text-sm text-gray-500">{user.email ?? 'Sin correo'}</p>
+                  <p className="text-sm text-gray-500">
+                    Identificación: {user.identification_number ?? 'N/D'}
+                  </p>
+                  <p className="text-sm text-gray-500">Teléfono: {user.phone ?? 'N/D'}</p>
                   <p className="text-sm text-gray-400">
                     Registrado el {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/D'}
                   </p>
