@@ -69,8 +69,8 @@ export const initialSpaces: Space[] = [
 
 export const initialAdminUser: User = {
   id: 'admin-001',
-  username: 'admin',
   email: 'admin@comunidad.com',
+  identificationNumber: '900123456',
   fullName: 'Administrador Principal',
   phone: '+57 300 123 4567',
   role: 'admin',

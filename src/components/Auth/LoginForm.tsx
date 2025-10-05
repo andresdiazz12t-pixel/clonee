@@ -16,7 +16,6 @@ const LoginForm: React.FC = () => {
   });
 
   const [registerData, setRegisterData] = useState<RegisterData>({
-    username: '',
     email: '',
     identificationNumber: '',
     fullName: '',
@@ -44,20 +43,54 @@ const LoginForm: React.FC = () => {
     setLoading(true);
     setError('');
 
+    const trimmedData = {
+      fullName: registerData.fullName.trim(),
+      email: registerData.email.trim(),
+      identificationNumber: registerData.identificationNumber.trim(),
+      phone: registerData.phone.trim(),
+      password: registerData.password
+    };
+
     if (
-      !registerData.username ||
-      !registerData.email ||
-      !registerData.identificationNumber ||
-      !registerData.fullName ||
-      !registerData.phone ||
-      !registerData.password
+      !trimmedData.fullName ||
+      !trimmedData.email ||
+      !trimmedData.identificationNumber ||
+      !trimmedData.phone ||
+      !trimmedData.password
     ) {
       setError('Todos los campos son obligatorios');
       setLoading(false);
       return;
     }
 
-    const success = await register(registerData);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedData.email)) {
+      setError('Ingresa un correo electrónico válido.');
+      setLoading(false);
+      return;
+    }
+
+    const idNumberDigits = trimmedData.identificationNumber.replace(/\D/g, '');
+    if (idNumberDigits.length < 6) {
+      setError('El número de identificación debe tener al menos 6 dígitos.');
+      setLoading(false);
+      return;
+    }
+
+    const phoneDigits = trimmedData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 7) {
+      setError('Ingresa un número de teléfono válido.');
+      setLoading(false);
+      return;
+    }
+
+    if (trimmedData.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.');
+      setLoading(false);
+      return;
+    }
+
+    const success = await register(trimmedData);
     if (!success) {
       setError('El usuario o email ya existe');
     }
@@ -162,31 +195,34 @@ const LoginForm: React.FC = () => {
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre Completo
+                Nombre completo
               </label>
               <input
                 type="text"
                 value={registerData.fullName}
                 onChange={(e) => setRegisterData({ ...registerData, fullName: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Juan Pérez"
+                placeholder="Ej: Juan Pérez"
+                autoComplete="name"
                 required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Usuario
+                Correo electrónico
               </label>
               <input
-                type="text"
-                value={registerData.username}
-                onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
+                type="email"
+                value={registerData.email}
+                onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="juanperez"
+                placeholder="correo@ejemplo.com"
+                autoComplete="email"
                 required
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Número de identificación
@@ -199,20 +235,8 @@ const LoginForm: React.FC = () => {
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="1234567890"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <input
-                type="email"
-                value={registerData.email}
-                onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="juan@email.com"
+                inputMode="numeric"
+                autoComplete="off"
                 required
               />
             </div>
@@ -227,6 +251,7 @@ const LoginForm: React.FC = () => {
                 onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="+57 300 123 4567"
+                autoComplete="tel"
                 required
               />
             </div>

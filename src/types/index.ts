@@ -1,6 +1,5 @@
 export interface User {
   id: string;
-  username: string;
   email: string;
   identificationNumber: string;
   fullName: string;
@@ -49,7 +48,6 @@ export interface AuthContextType {
 }
 
 export interface RegisterData {
-  username: string;
   email: string;
   identificationNumber: string;
   fullName: string;
