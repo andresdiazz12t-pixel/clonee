@@ -45,6 +45,7 @@ export interface AuthContextType {
   register: (userData: RegisterData) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+  updateProfile: (updates: UpdateProfilePayload) => Promise<{ success: boolean; error?: string }>;
 }
 
 export interface RegisterData {
@@ -53,6 +54,14 @@ export interface RegisterData {
   fullName: string;
   phone: string;
   password: string;
+}
+
+export interface UpdateProfilePayload {
+  fullName: string;
+  email: string;
+  phone: string;
+  identificationNumber?: string;
+  password?: string;
 }
 
 export interface SpaceContextType {

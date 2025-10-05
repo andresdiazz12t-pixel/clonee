@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, MapPin, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, UserCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSpaces } from '../../context/SpaceContext';
 import { useReservations } from '../../context/ReservationContext';
@@ -172,6 +172,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
                   <p className="text-sm text-gray-500">
                     {user.role === 'admin' ? 'Ver todas las reservas del sistema' : 'Administra tus reservas'}
                   </p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => onViewChange('profile')}
+              className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all"
+            >
+              <div className="flex items-center">
+                <UserCircle className="h-5 w-5 text-indigo-600 mr-3" />
+                <div>
+                  <h3 className="font-medium text-gray-900">Mi Perfil</h3>
+                  <p className="text-sm text-gray-500">Actualiza tus datos personales y de contacto</p>
                 </div>
               </div>
             </button>

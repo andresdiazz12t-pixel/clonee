@@ -7,7 +7,7 @@ import React, {
   useCallback
 } from 'react';
 import bcrypt from 'bcryptjs';
-import { User, AuthContextType, RegisterData } from '../types';
+import { User, AuthContextType, RegisterData, UpdateProfilePayload } from '../types';
 import type { Database } from '../lib/database.types';
 import { supabase } from '../lib/supabase';
 
@@ -200,12 +200,63 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   }, [clearSession]);
 
+  const updateProfile = useCallback(
+    async (updates: UpdateProfilePayload): Promise<{ success: boolean; error?: string }> => {
+      if (!user) {
+        return { success: false, error: 'No hay un usuario autenticado.' };
+      }
+
+      setIsLoading(true);
+
+      try {
+        const trimmedFullName = updates.fullName.trim();
+        const trimmedEmail = updates.email.trim();
+        const trimmedPhone = updates.phone.trim();
+        const trimmedIdentification = updates.identificationNumber?.trim();
+
+        const profileUpdates: Database['public']['Tables']['profiles']['Update'] = {
+          full_name: trimmedFullName,
+          email: trimmedEmail,
+          phone: trimmedPhone
+        };
+
+        if (typeof trimmedIdentification === 'string') {
+          profileUpdates.identification_number = trimmedIdentification;
+        }
+
+        if (updates.password && updates.password.trim().length > 0) {
+          profileUpdates.password_hash = await bcrypt.hash(updates.password, 10);
+        }
+
+        const { error } = await supabase
+          .from('profiles')
+          .update(profileUpdates)
+          .eq('id', user.id);
+
+        if (error) {
+          console.error('Profile update error:', error);
+          return { success: false, error: 'No se pudo actualizar el perfil. Inténtalo nuevamente.' };
+        }
+
+        await loadUserProfile(user.id);
+        return { success: true };
+      } catch (error) {
+        console.error('Profile update error:', error);
+        return { success: false, error: 'Ocurrió un error al actualizar el perfil.' };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [user, loadUserProfile]
+  );
+
   const value: AuthContextType = {
     user,
     login,
     register,
     logout,
-    isLoading
+    isLoading,
+    updateProfile
   };
 
   return (
