@@ -11,13 +11,14 @@ const LoginForm: React.FC = () => {
   const [error, setError] = useState('');
 
   const [loginData, setLoginData] = useState({
-    email: '',
+    identificationNumber: '',
     password: ''
   });
 
   const [registerData, setRegisterData] = useState<RegisterData>({
     username: '',
     email: '',
+    identificationNumber: '',
     fullName: '',
     phone: '',
     password: ''
@@ -28,7 +29,10 @@ const LoginForm: React.FC = () => {
     setLoading(true);
     setError('');
 
-    const success = await login(loginData.email, loginData.password);
+    const success = await login(
+      loginData.identificationNumber,
+      loginData.password
+    );
     if (!success) {
       setError('Usuario o contraseña incorrectos');
     }
@@ -40,7 +44,14 @@ const LoginForm: React.FC = () => {
     setLoading(true);
     setError('');
 
-    if (!registerData.username || !registerData.email || !registerData.fullName || !registerData.phone || !registerData.password) {
+    if (
+      !registerData.username ||
+      !registerData.email ||
+      !registerData.identificationNumber ||
+      !registerData.fullName ||
+      !registerData.phone ||
+      !registerData.password
+    ) {
       setError('Todos los campos son obligatorios');
       setLoading(false);
       return;
@@ -101,14 +112,16 @@ const LoginForm: React.FC = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+                Número de identificación
               </label>
               <input
-                type="email"
-                value={loginData.email}
-                onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                type="text"
+                value={loginData.identificationNumber}
+                onChange={(e) =>
+                  setLoginData({ ...loginData, identificationNumber: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ingrese su email"
+                placeholder="Ingrese su número de identificación"
                 required
               />
             </div>
@@ -171,6 +184,21 @@ const LoginForm: React.FC = () => {
                 onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="juanperez"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Número de identificación
+              </label>
+              <input
+                type="text"
+                value={registerData.identificationNumber}
+                onChange={(e) =>
+                  setRegisterData({ ...registerData, identificationNumber: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="1234567890"
                 required
               />
             </div>

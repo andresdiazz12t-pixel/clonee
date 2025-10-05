@@ -4,12 +4,14 @@ import React, {
   useState,
   useEffect,
   ReactNode,
-  useRef,
   useCallback
 } from 'react';
+import bcrypt from 'bcryptjs';
 import { User, AuthContextType, RegisterData } from '../types';
 import type { Database } from '../lib/database.types';
 import { supabase } from '../lib/supabase';
+
+const AUTH_STORAGE_KEY = 'auth_profile_id';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -25,152 +27,180 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const cleanupRef = useRef<(() => void) | null>(null);
-
-  type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+  const clearSession = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+    setUser(null);
+  }, []);
 
   const loadUserProfile = useCallback(
-    async (userId: string) => {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('id, username, full_name, phone, role, is_active, created_at, email')
-        .eq('id', userId)
-        .maybeSingle<ProfileRow>();
+    async (profileId: string): Promise<ProfileRow | null> => {
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select(
+            'id, username, full_name, phone, role, is_active, created_at, email, identification_number'
+          )
+          .eq('id', profileId)
+          .maybeSingle<ProfileRow>();
 
-      if (error) {
-        console.error('Error loading profile:', error);
-        setIsLoading(false);
-        return;
-      }
+        if (error) {
+          console.error('Error loading profile:', error);
+          clearSession();
+          return null;
+        }
 
-      if (profile) {
+        if (!profile || profile.is_active === false) {
+          clearSession();
+          return null;
+        }
+
+        const role = profile.role === 'admin' ? 'admin' : 'user';
+
         const userData: User = {
           id: profile.id,
           username: profile.username,
           email: profile.email ?? '',
+          identificationNumber: profile.identification_number,
           fullName: profile.full_name,
           phone: profile.phone,
-          role: profile.role,
-          createdAt: profile.created_at,
+          role,
+          createdAt: profile.created_at ?? new Date().toISOString(),
           isActive: profile.is_active
         };
 
-        const { data: authUser, error: authError } = await supabase.auth.getUser();
+        setUser(userData);
 
-        if (authError) {
-          console.error('Error loading auth user:', authError);
-        } else if (authUser.user?.email) {
-          userData.email = authUser.user.email;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(AUTH_STORAGE_KEY, profile.id);
         }
 
-        setUser(userData);
+        return profile;
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        clearSession();
+        return null;
       }
-
-      setIsLoading(false);
     },
-    []
+    [clearSession]
   );
 
-  const initializeAuth = useCallback((): (() => void) => {
-    if (cleanupRef.current) {
-      cleanupRef.current();
-      cleanupRef.current = null;
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setIsLoading(false);
+      return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
+    const storedProfileId = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!storedProfileId) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    loadUserProfile(storedProfileId).finally(() => {
+      setIsLoading(false);
     });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-      } else {
-        setUser(null);
-        setIsLoading(false);
-      }
-    });
-
-    const cleanup = () => {
-      subscription.unsubscribe();
-      if (cleanupRef.current === cleanup) {
-        cleanupRef.current = null;
-      }
-    };
-
-    cleanupRef.current = cleanup;
-
-    return cleanup;
   }, [loadUserProfile]);
 
-  useEffect(() => {
-    const cleanup = initializeAuth();
-    return cleanup;
-  }, [initializeAuth]);
+  const login = useCallback(
+    async (identificationNumber: string, password: string): Promise<boolean> => {
+      setIsLoading(true);
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select(
+            'id, username, full_name, phone, role, is_active, created_at, email, identification_number, password_hash'
+          )
+          .eq('identification_number', identificationNumber)
+          .maybeSingle<ProfileRow>();
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+        if (error) {
+          console.error('Login error:', error);
+          clearSession();
+          return false;
+        }
 
-      if (error) throw error;
+        if (!profile || !profile.password_hash || profile.is_active === false) {
+          clearSession();
+          return false;
+        }
 
-      if (data.user) {
-        await loadUserProfile(data.user.id);
+        const passwordMatches = await bcrypt.compare(password, profile.password_hash);
+        if (!passwordMatches) {
+          clearSession();
+          return false;
+        }
+
+        await loadUserProfile(profile.id);
         return true;
+      } catch (error) {
+        console.error('Login error:', error);
+        clearSession();
+        return false;
+      } finally {
+        setIsLoading(false);
       }
-      return false;
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
-    }
-  };
+    },
+    [clearSession, loadUserProfile]
+  );
 
-  const register = async (userData: RegisterData): Promise<boolean> => {
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password
-      });
+  const register = useCallback(
+    async (userData: RegisterData): Promise<boolean> => {
+      setIsLoading(true);
+      try {
+        const passwordHash = await bcrypt.hash(userData.password, 10);
+        const profileId = typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2);
 
-      if (authError) throw authError;
-      if (!authData.user) return false;
+        const { data, error } = await supabase
+          .from('profiles')
+          .insert({
+            id: profileId,
+            username: userData.username,
+            full_name: userData.fullName,
+            email: userData.email,
+            phone: userData.phone,
+            identification_number: userData.identificationNumber,
+            password_hash: passwordHash,
+            role: 'user',
+            is_active: true
+          })
+          .select('id')
+          .maybeSingle<Pick<ProfileRow, 'id'>>();
 
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          username: userData.username,
-          full_name: userData.fullName,
-          email: userData.email,
-          phone: userData.phone,
-          role: 'user',
-          is_active: true
-        });
+        if (error) {
+          console.error('Registration error:', error);
+          clearSession();
+          return false;
+        }
 
-      if (profileError) throw profileError;
+        const newProfileId = data?.id ?? profileId;
+        await loadUserProfile(newProfileId);
+        return true;
+      } catch (error) {
+        console.error('Registration error:', error);
+        clearSession();
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [clearSession, loadUserProfile]
+  );
 
-      await loadUserProfile(authData.user.id);
-      return true;
-    } catch (error) {
-      console.error('Registration error:', error);
-      return false;
-    }
-  };
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-  };
+  const logout = useCallback(() => {
+    clearSession();
+    setIsLoading(false);
+  }, [clearSession]);
 
   const value: AuthContextType = {
     user,

@@ -2,6 +2,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  identificationNumber: string;
   fullName: string;
   phone: string;
   role: 'admin' | 'user';
@@ -41,7 +42,7 @@ export interface Reservation {
 
 export interface AuthContextType {
   user: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (identificationNumber: string, password: string) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
@@ -50,6 +51,7 @@ export interface AuthContextType {
 export interface RegisterData {
   username: string;
   email: string;
+  identificationNumber: string;
   fullName: string;
   phone: string;
   password: string;
