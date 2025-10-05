@@ -126,6 +126,26 @@ export interface Database {
           updated_at?: string
         }
       }
+      system_settings: {
+        Row: {
+          id: string
+          max_advance_days: number
+          max_concurrent_reservations: number
+          internal_message: string
+        }
+        Insert: {
+          id?: string
+          max_advance_days?: number
+          max_concurrent_reservations?: number
+          internal_message?: string
+        }
+        Update: {
+          id?: string
+          max_advance_days?: number
+          max_concurrent_reservations?: number
+          internal_message?: string
+        }
+      }
     }
   }
 }
