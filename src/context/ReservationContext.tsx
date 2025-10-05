@@ -34,7 +34,7 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
       .select(`
         *,
         spaces(name),
-        profiles(full_name, phone, identification_number)
+        profiles(full_name, phone, identification_number, email)
       `);
 
     if (user.role !== 'admin') {

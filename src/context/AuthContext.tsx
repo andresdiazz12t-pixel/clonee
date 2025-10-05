@@ -68,8 +68,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           id: profile.id,
           email: profile.email ?? '',
           identificationNumber: profile.identification_number,
-          fullName: profile.full_name,
-          phone: profile.phone,
+          fullName: profile.full_name ?? '',
+          phone: profile.phone ?? '',
           role,
           createdAt: profile.created_at ?? new Date().toISOString(),
           isActive: profile.is_active
@@ -164,7 +164,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .from('profiles')
           .insert({
             id: profileId,
-            username: userData.identificationNumber,
             full_name: userData.fullName,
             email: userData.email,
             phone: userData.phone,

@@ -23,10 +23,9 @@ export type Database = {
           identification_number: string
           is_active: boolean
           password_hash: string | null
-          phone: string
+          phone: string | null
           role: string
           updated_at: string | null
-          username: string
         }
         Insert: {
           created_at?: string | null
@@ -36,10 +35,9 @@ export type Database = {
           identification_number: string
           is_active?: boolean
           password_hash?: string | null
-          phone: string
+          phone?: string | null
           role?: string
           updated_at?: string | null
-          username: string
         }
         Update: {
           created_at?: string | null
@@ -49,10 +47,9 @@ export type Database = {
           identification_number?: string
           is_active?: boolean
           password_hash?: string | null
-          phone?: string
+          phone?: string | null
           role?: string
           updated_at?: string | null
-          username?: string
         }
         Relationships: []
       }
@@ -99,6 +96,13 @@ export type Database = {
             columns: ["space_id"]
             isOneToOne: false
             referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
