@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { data: profile, error } = await supabase
           .from('profiles')
           .select(
-            'id, username, full_name, phone, role, is_active, created_at, email, identification_number'
+            'id, full_name, phone, role, is_active, created_at, email, identification_number'
           )
           .eq('id', profileId)
           .maybeSingle<ProfileRow>();
@@ -66,7 +66,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         const userData: User = {
           id: profile.id,
-          username: profile.username,
           email: profile.email ?? '',
           identificationNumber: profile.identification_number,
           fullName: profile.full_name,
@@ -117,7 +116,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const { data: profile, error } = await supabase
           .from('profiles')
           .select(
-            'id, username, full_name, phone, role, is_active, created_at, email, identification_number, password_hash'
+            'id, full_name, phone, role, is_active, created_at, email, identification_number, password_hash'
           )
           .eq('identification_number', identificationNumber)
           .maybeSingle<ProfileRow>();
@@ -165,7 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .from('profiles')
           .insert({
             id: profileId,
-            username: userData.username,
+            username: userData.identificationNumber,
             full_name: userData.fullName,
             email: userData.email,
             phone: userData.phone,
