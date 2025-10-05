@@ -11,6 +11,7 @@ import AdminPanel from './components/Admin/AdminPanel';
 import UserManagement from './components/Admin/UserManagement';
 import ReportsPanel from './components/Admin/ReportsPanel';
 import AdvancedSettings from './components/Admin/AdvancedSettings';
+import ProfileSettings from './components/Profile/ProfileSettings';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -51,6 +52,8 @@ const AppContent: React.FC = () => {
         ) : (
           <Dashboard onViewChange={setCurrentView} />
         );
+      case 'profile':
+        return <ProfileSettings />;
       case 'admin-users':
         return user.role === 'admin' ? (
           <UserManagement onBack={() => setCurrentView('admin-panel')} />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, LogOut, Settings, Calendar, Home } from 'lucide-react';
+import { User, LogOut, Settings, Calendar, Home, UserCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
@@ -12,17 +12,19 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
 
   if (!user) return null;
 
-  const navigationItems = user.role === 'admin' 
+  const navigationItems = user.role === 'admin'
     ? [
         { id: 'dashboard', label: 'Inicio', icon: Home },
         { id: 'spaces', label: 'Espacios', icon: Calendar },
         { id: 'all-reservations', label: 'Todas las Reservas', icon: Calendar },
+        { id: 'profile', label: 'Mi Perfil', icon: UserCircle },
         { id: 'admin-panel', label: 'Panel Admin', icon: Settings },
       ]
     : [
         { id: 'dashboard', label: 'Inicio', icon: Home },
         { id: 'spaces', label: 'Espacios', icon: Calendar },
         { id: 'my-reservations', label: 'Mis Reservas', icon: Calendar },
+        { id: 'profile', label: 'Mi Perfil', icon: UserCircle },
       ];
 
   return (
