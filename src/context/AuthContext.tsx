@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     async (userId: string) => {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('id, username, full_name, phone, role, is_active, created_at')
+        .select('id, username, full_name, phone, role, is_active, created_at, email')
         .eq('id', userId)
         .maybeSingle<ProfileRow>();
 
@@ -48,10 +48,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (profile) {
-        setUser({
+        const userData: User = {
           id: profile.id,
           username: profile.username,
-          email: profile.email,
+          email: profile.email ?? '',
           fullName: profile.full_name,
           phone: profile.phone,
           role: profile.role,
