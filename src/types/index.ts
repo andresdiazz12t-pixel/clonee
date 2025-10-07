@@ -82,4 +82,6 @@ export interface ReservationContextType {
   getSpaceReservations: (spaceId: string, date?: string) => Reservation[];
   fetchSpaceSchedule: (spaceId: string, date: string) => Promise<Reservation[]>;
   isTimeSlotAvailable: (spaceId: string, date: string, startTime: string, endTime: string) => Promise<boolean>;
+  maxAdvanceDays: number | null;
+  maxConcurrentReservations: number | null;
 }

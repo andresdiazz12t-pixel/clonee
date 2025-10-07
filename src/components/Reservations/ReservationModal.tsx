@@ -4,7 +4,7 @@ import { useSpaces } from '../../context/SpaceContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useAuth } from '../../context/AuthContext';
 import { Reservation } from '../../types';
-import { timeToMinutes, isTimeInRange, getTodayLocalISO } from '../../utils/dateUtils';
+import { timeToMinutes, getTodayLocalISO } from '../../utils/dateUtils';
 
 interface ReservationModalProps {
   spaceId: string;
@@ -14,7 +14,15 @@ interface ReservationModalProps {
 const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose }) => {
   const { user } = useAuth();
   const { getSpace } = useSpaces();
-  const { addReservation, fetchSpaceSchedule, isTimeSlotAvailable, reservations } = useReservations();
+  const {
+    addReservation,
+    fetchSpaceSchedule,
+    isTimeSlotAvailable,
+    reservations,
+    maxAdvanceDays,
+    maxConcurrentReservations,
+    getUserReservations,
+  } = useReservations();
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -142,6 +150,31 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
       setError('No se pueden hacer reservas para fechas pasadas');
       setLoading(false);
       return;
+    }
+
+    if (maxAdvanceDays !== null) {
+      const maxAllowedDate = new Date(today);
+      maxAllowedDate.setDate(maxAllowedDate.getDate() + maxAdvanceDays);
+
+      if (selectedDate > maxAllowedDate) {
+        setError(`No puedes reservar con más de ${maxAdvanceDays} días de anticipación.`);
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (maxConcurrentReservations !== null) {
+      const activeReservations = getUserReservations(user.id).filter((reservation) => {
+        const reservationDate = new Date(reservation.date);
+        reservationDate.setHours(0, 0, 0, 0);
+        return reservationDate >= today;
+      });
+
+      if (activeReservations.length >= maxConcurrentReservations) {
+        setError(`Has alcanzado el máximo de ${maxConcurrentReservations} reservas activas permitidas.`);
+        setLoading(false);
+        return;
+      }
     }
 
     const reservationData = {

@@ -21,7 +21,29 @@ interface ReservationProviderProps {
 export const ReservationProvider: React.FC<ReservationProviderProps> = ({ children }) => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [reservationsError, setReservationsError] = useState<string | null>(null);
+  const [maxAdvanceDays, setMaxAdvanceDays] = useState<number | null>(null);
+  const [maxConcurrentReservations, setMaxConcurrentReservations] = useState<number | null>(null);
   const { user, isLoading: isAuthLoading } = useAuth();
+
+  useEffect(() => {
+    const loadSystemSettings = async () => {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('max_advance_days, max_concurrent_reservations')
+        .eq('id', 'global')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error loading system settings:', error);
+        return;
+      }
+
+      setMaxAdvanceDays(data?.max_advance_days ?? null);
+      setMaxConcurrentReservations(data?.max_concurrent_reservations ?? null);
+    };
+
+    loadSystemSettings();
+  }, []);
 
   const loadReservations = useCallback(async () => {
     if (!user) {
@@ -223,7 +245,9 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
     getUserReservations,
     getSpaceReservations,
     fetchSpaceSchedule,
-    isTimeSlotAvailable
+    isTimeSlotAvailable,
+    maxAdvanceDays,
+    maxConcurrentReservations
   };
 
   return (
