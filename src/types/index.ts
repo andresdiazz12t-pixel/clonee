@@ -80,5 +80,6 @@ export interface ReservationContextType {
   cancelReservation: (id: string) => void;
   getUserReservations: (userId: string) => Reservation[];
   getSpaceReservations: (spaceId: string, date?: string) => Reservation[];
+  fetchSpaceSchedule: (spaceId: string, date: string) => Promise<Reservation[]>;
   isTimeSlotAvailable: (spaceId: string, date: string, startTime: string, endTime: string) => Promise<boolean>;
 }

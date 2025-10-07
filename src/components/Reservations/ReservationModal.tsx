@@ -3,6 +3,7 @@ import { X, Calendar, Clock, User, Save } from 'lucide-react';
 import { useSpaces } from '../../context/SpaceContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useAuth } from '../../context/AuthContext';
+import { Reservation } from '../../types';
 import { timeToMinutes, isTimeInRange, getTodayLocalISO } from '../../utils/dateUtils';
 
 interface ReservationModalProps {
@@ -13,7 +14,7 @@ interface ReservationModalProps {
 const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose }) => {
   const { user } = useAuth();
   const { getSpace } = useSpaces();
-  const { addReservation, getSpaceReservations, isTimeSlotAvailable } = useReservations();
+  const { addReservation, fetchSpaceSchedule, isTimeSlotAvailable, reservations } = useReservations();
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,7 +29,9 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
     event: '',
   });
 
-  const [existingReservations, setExistingReservations] = useState<any[]>([]);
+  const [existingReservations, setExistingReservations] = useState<Reservation[]>([]);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
 
   useEffect(() => {
     // Set minimum date to today
@@ -37,11 +40,41 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
   }, []);
 
   useEffect(() => {
-    if (formData.date) {
-      const reservations = getSpaceReservations(spaceId, formData.date);
-      setExistingReservations(reservations);
-    }
-  }, [formData.date, spaceId]);
+    let isSubscribed = true;
+
+    const loadSchedule = async () => {
+      if (!formData.date) {
+        setExistingReservations([]);
+        return;
+      }
+
+      setScheduleLoading(true);
+      setScheduleError(null);
+
+      try {
+        const reservations = await fetchSpaceSchedule(spaceId, formData.date);
+        if (isSubscribed) {
+          setExistingReservations(reservations);
+        }
+      } catch (err) {
+        console.error(err);
+        if (isSubscribed) {
+          setExistingReservations([]);
+          setScheduleError('No se pudieron cargar las reservas existentes.');
+        }
+      } finally {
+        if (isSubscribed) {
+          setScheduleLoading(false);
+        }
+      }
+    };
+
+    loadSchedule();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [fetchSpaceSchedule, formData.date, reservations, spaceId]);
 
   if (!space || !user) return null;
 
@@ -256,18 +289,34 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
           </div>
 
           {/* Show existing reservations for selected date */}
-          {formData.date && existingReservations.length > 0 && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <h4 className="font-medium text-yellow-800 mb-2">
-                Reservas existentes para {new Date(formData.date).toLocaleDateString('es-ES')}:
-              </h4>
-              <div className="space-y-1">
-                {existingReservations.map(reservation => (
-                  <div key={reservation.id} className="text-sm text-yellow-700">
-                    {reservation.startTime} - {reservation.endTime}: {reservation.event}
+          {formData.date && (
+            <div className="space-y-2">
+              {scheduleLoading && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded">
+                  Cargando reservas existentes...
+                </div>
+              )}
+
+              {scheduleError && (
+                <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {scheduleError}
+                </div>
+              )}
+
+              {!scheduleLoading && !scheduleError && existingReservations.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                  <h4 className="font-medium text-yellow-800 mb-2">
+                    Reservas existentes para {new Date(formData.date).toLocaleDateString('es-ES')}:
+                  </h4>
+                  <div className="space-y-1">
+                    {existingReservations.map(reservation => (
+                      <div key={reservation.id} className="text-sm text-yellow-700">
+                        {reservation.startTime} - {reservation.endTime}: {reservation.event}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           )}
 

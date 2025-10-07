@@ -151,6 +151,44 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
     });
   };
 
+  const fetchSpaceSchedule = useCallback(async (spaceId: string, date: string): Promise<Reservation[]> => {
+    const { data, error } = await supabase
+      .from('reservations')
+      .select(`
+        *,
+        spaces(name),
+        profiles(full_name, phone, identification_number, email)
+      `)
+      .eq('space_id', spaceId)
+      .eq('date', date)
+      .neq('status', 'cancelled')
+      .order('start_time', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching space schedule:', error);
+      throw new Error('No se pudieron cargar las reservas del espacio.');
+    }
+
+    if (!data) {
+      return [];
+    }
+
+    return data.map(reservation => ({
+      id: reservation.id,
+      spaceId: reservation.space_id,
+      spaceName: (reservation.spaces as any)?.name || '',
+      userId: reservation.user_id,
+      userName: (reservation.profiles as any)?.full_name || '',
+      userContact: (reservation.profiles as any)?.phone || '',
+      date: reservation.date,
+      startTime: reservation.start_time,
+      endTime: reservation.end_time,
+      event: reservation.event,
+      status: reservation.status as Reservation['status'],
+      createdAt: reservation.created_at
+    }));
+  }, []);
+
   const isTimeSlotAvailable = async (spaceId: string, date: string, startTime: string, endTime: string): Promise<boolean> => {
     const { data } = await supabase
       .from('reservations')
@@ -184,6 +222,7 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
     cancelReservation,
     getUserReservations,
     getSpaceReservations,
+    fetchSpaceSchedule,
     isTimeSlotAvailable
   };
 
