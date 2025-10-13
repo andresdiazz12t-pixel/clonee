@@ -9,7 +9,7 @@ import ReservationModal from '../Reservations/ReservationModal';
 
 const SpacesList: React.FC = () => {
   const { user } = useAuth();
-  const { spaces, deleteSpace } = useSpaces();
+  const { spaces, spacesError, loadSpaces, deleteSpace } = useSpaces();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('');
   const [showSpaceForm, setShowSpaceForm] = useState(false);
@@ -76,6 +76,18 @@ const SpacesList: React.FC = () => {
           </button>
         )}
       </div>
+
+      {spacesError && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
+          <p className="font-medium">{spacesError}</p>
+          <button
+            onClick={() => { void loadSpaces(); }}
+            className="mt-3 inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-6 mb-8">

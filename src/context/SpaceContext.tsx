@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Space, SpaceContextType } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -19,41 +19,27 @@ interface SpaceProviderProps {
 
 export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
+  const [spacesError, setSpacesError] = useState<string | null>(null);
   const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
+  const loadSpaces = useCallback(async () => {
     if (!user) {
       setSpaces([]);
+      setSpacesError(null);
       return;
     }
 
-    void loadSpaces();
-  }, [user, isLoading]);
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('spaces-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'spaces' }, () => {
-        if (user) {
-          void loadSpaces();
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  const loadSpaces = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('spaces')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (error) {
+      setSpacesError(error.message || 'No se pudieron cargar los espacios.');
+      return;
+    }
+
+    setSpacesError(null);
 
     if (data) {
       const formattedSpaces: Space[] = data.map(space => ({
@@ -71,8 +57,39 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
         imageUrl: space.image_url || undefined
       }));
       setSpaces(formattedSpaces);
+    } else {
+      setSpaces([]);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (!user) {
+      setSpaces([]);
+      setSpacesError(null);
+      return;
+    }
+
+    void loadSpaces();
+  }, [user, isLoading, loadSpaces]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('spaces-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'spaces' }, () => {
+        if (user) {
+          void loadSpaces();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, loadSpaces]);
 
   const addSpace = async (spaceData: Omit<Space, 'id'>): Promise<boolean> => {
     const { error } = await supabase
@@ -142,6 +159,8 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
 
   const value: SpaceContextType = {
     spaces,
+    spacesError,
+    loadSpaces,
     addSpace,
     updateSpace,
     deleteSpace,
