@@ -15,6 +15,7 @@ const SpacesList: React.FC = () => {
   const [showSpaceForm, setShowSpaceForm] = useState(false);
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
   const [reservingSpaceId, setReservingSpaceId] = useState<string | null>(null);
+  const [hasRequestedSpaces, setHasRequestedSpaces] = useState(false);
 
   const spaceTypes = [
     { value: '', label: 'Todos los tipos' },
@@ -27,10 +28,23 @@ const SpacesList: React.FC = () => {
   ];
 
   useEffect(() => {
-    if (user && !isLoadingSpaces && spaces.length === 0) {
+    if (!user) {
+      if (hasRequestedSpaces) {
+        setHasRequestedSpaces(false);
+      }
+      return;
+    }
+
+    if (hasRequestedSpaces) {
+      return;
+    }
+
+    setHasRequestedSpaces(true);
+
+    if (!isLoadingSpaces && spaces.length === 0) {
       void loadSpaces();
     }
-  }, [user, isLoadingSpaces, spaces.length, loadSpaces]);
+  }, [user, hasRequestedSpaces, isLoadingSpaces, spaces.length, loadSpaces]);
 
   const filteredSpaces = spaces.filter(space => {
     const matchesSearch = space.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
