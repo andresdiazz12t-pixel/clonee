@@ -69,6 +69,8 @@ export interface UpdateProfilePayload {
 
 export interface SpaceContextType {
   spaces: Space[];
+  spacesError: string | null;
+  loadSpaces: () => Promise<void>;
   addSpace: (space: Omit<Space, 'id'>) => Promise<boolean>;
   updateSpace: (id: string, space: Partial<Space>) => Promise<boolean>;
   deleteSpace: (id: string) => void;
