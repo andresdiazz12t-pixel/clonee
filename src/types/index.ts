@@ -41,8 +41,11 @@ export interface Reservation {
 
 export interface AuthContextType {
   user: User | null;
-  login: (identificationNumber: string, password: string) => Promise<boolean>;
-  register: (userData: RegisterData) => Promise<boolean>;
+  login: (
+    identificationNumber: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  register: (userData: RegisterData) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isLoading: boolean;
   updateProfile: (updates: UpdateProfilePayload) => Promise<{ success: boolean; error?: string }>;

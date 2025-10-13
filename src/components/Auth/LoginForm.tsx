@@ -28,12 +28,13 @@ const LoginForm: React.FC = () => {
     setLoading(true);
     setError('');
 
-    const success = await login(
+    const result = await login(
       loginData.identificationNumber,
       loginData.password
     );
-    if (!success) {
-      setError('Usuario o contraseña incorrectos');
+
+    if (!result.success) {
+      setError(result.error ?? 'No se pudo iniciar sesión. Inténtalo nuevamente.');
     }
     setLoading(false);
   };
@@ -90,9 +91,9 @@ const LoginForm: React.FC = () => {
       return;
     }
 
-    const success = await register(trimmedData);
-    if (!success) {
-      setError('El usuario o email ya existe');
+    const result = await register(trimmedData);
+    if (!result.success) {
+      setError(result.error ?? 'No se pudo crear la cuenta.');
     }
     setLoading(false);
   };
@@ -221,6 +222,9 @@ const LoginForm: React.FC = () => {
                 autoComplete="email"
                 required
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Se almacena solo como dato de contacto; la autenticación usa un correo sintético basado en la identificación.
+              </p>
             </div>
 
             <div>

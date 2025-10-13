@@ -6,14 +6,24 @@ import React, {
   ReactNode,
   useCallback
 } from 'react';
-import bcrypt from 'bcryptjs';
 import { User, AuthContextType, RegisterData, UpdateProfilePayload } from '../types';
 import type { Database } from '../lib/database.types';
 import { supabase } from '../lib/supabase';
 
-const AUTH_STORAGE_KEY = 'auth_profile_id';
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+
+const mapProfileToUser = (profile: ProfileRow): User => ({
+  id: profile.id,
+  email: profile.email ?? '',
+  identificationNumber: profile.identification_number,
+  fullName: profile.full_name ?? '',
+  phone: profile.phone ?? '',
+  role: profile.role === 'admin' ? 'admin' : 'user',
+  createdAt: profile.created_at ?? new Date().toISOString(),
+  isActive: profile.is_active
+});
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -27,178 +37,206 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-type ProfileRow = Database['public']['Tables']['profiles']['Row'];
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const clearSession = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-    }
-    setUser(null);
-  }, []);
+  const loadUserProfile = useCallback(async (profileId: string): Promise<ProfileRow | null> => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select(
+          'id, full_name, phone, role, is_active, created_at, email, identification_number'
+        )
+        .eq('id', profileId)
+        .maybeSingle<ProfileRow>();
 
-  const loadUserProfile = useCallback(
-    async (profileId: string): Promise<ProfileRow | null> => {
-      try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select(
-            'id, full_name, phone, role, is_active, created_at, email, identification_number'
-          )
-          .eq('id', profileId)
-          .maybeSingle<ProfileRow>();
-
-        if (error) {
-          console.error('Error loading profile:', error);
-          clearSession();
-          return null;
-        }
-
-        if (!profile || profile.is_active === false) {
-          clearSession();
-          return null;
-        }
-
-        const role = profile.role === 'admin' ? 'admin' : 'user';
-
-        const userData: User = {
-          id: profile.id,
-          email: profile.email ?? '',
-          identificationNumber: profile.identification_number,
-          fullName: profile.full_name ?? '',
-          phone: profile.phone ?? '',
-          role,
-          createdAt: profile.created_at ?? new Date().toISOString(),
-          isActive: profile.is_active
-        };
-
-        setUser(userData);
-
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(AUTH_STORAGE_KEY, profile.id);
-        }
-
-        return profile;
-      } catch (error) {
+      if (error) {
         console.error('Error loading profile:', error);
-        clearSession();
+        setUser(null);
         return null;
       }
-    },
-    [clearSession]
-  );
+
+      if (!profile || profile.is_active === false) {
+        setUser(null);
+        return null;
+      }
+
+      setUser(mapProfileToUser(profile));
+      return profile;
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      setUser(null);
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      setIsLoading(false);
-      return;
-    }
+    let isMounted = true;
 
-    const storedProfileId = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!storedProfileId) {
-      setIsLoading(false);
-      return;
-    }
+    const initialize = async () => {
+      setIsLoading(true);
+      const {
+        data: { user: currentUser },
+        error
+      } = await supabase.auth.getUser();
 
-    setIsLoading(true);
-    loadUserProfile(storedProfileId).finally(() => {
+      if (!isMounted) {
+        return;
+      }
+
+      if (error) {
+        console.error('Error initializing auth session:', error);
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      if (currentUser) {
+        await loadUserProfile(currentUser.id);
+      } else {
+        setUser(null);
+      }
+
       setIsLoading(false);
+    };
+
+    void initialize();
+
+    const { data } = supabase.auth.onAuthStateChange((_, session) => {
+      if (!isMounted) {
+        return;
+      }
+
+      if (session?.user) {
+        setIsLoading(true);
+        void loadUserProfile(session.user.id).finally(() => {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        });
+      } else {
+        setUser(null);
+        setIsLoading(false);
+      }
     });
+
+    return () => {
+      isMounted = false;
+      data.subscription.unsubscribe();
+    };
   }, [loadUserProfile]);
 
   const login = useCallback(
-    async (identificationNumber: string, password: string): Promise<boolean> => {
+    async (identificationNumber: string, password: string) => {
       setIsLoading(true);
       try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select(
-            'id, full_name, phone, role, is_active, created_at, email, identification_number, password_hash'
-          )
-          .eq('identification_number', identificationNumber)
-          .maybeSingle<ProfileRow>();
+        const syntheticEmail = `${identificationNumber}@id.local`.toLowerCase();
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: syntheticEmail,
+          password
+        });
 
         if (error) {
           console.error('Login error:', error);
-          clearSession();
-          return false;
+          return { success: false, error: error.message };
         }
 
-        if (!profile || !profile.password_hash || profile.is_active === false) {
-          clearSession();
-          return false;
+        const authenticatedUser = data.user;
+        if (!authenticatedUser) {
+          return {
+            success: false,
+            error: 'No se pudo iniciar sesión. Verifica la configuración de autenticación.'
+          };
         }
 
-        const passwordMatches = await bcrypt.compare(password, profile.password_hash);
-        if (!passwordMatches) {
-          clearSession();
-          return false;
-        }
-
-        await loadUserProfile(profile.id);
-        return true;
+        await loadUserProfile(authenticatedUser.id);
+        return { success: true };
       } catch (error) {
         console.error('Login error:', error);
-        clearSession();
-        return false;
+        return { success: false, error: 'Ocurrió un error al iniciar sesión.' };
       } finally {
         setIsLoading(false);
       }
     },
-    [clearSession, loadUserProfile]
+    [loadUserProfile]
   );
 
   const register = useCallback(
-    async (userData: RegisterData): Promise<boolean> => {
+    async (userData: RegisterData) => {
       setIsLoading(true);
-      try {
-        const passwordHash = await bcrypt.hash(userData.password, 10);
-        const profileId = typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : Math.random().toString(36).slice(2);
+      const trimmedFullName = userData.fullName.trim();
+      const trimmedEmail = userData.email.trim();
+      const trimmedPhone = userData.phone.trim();
+      const trimmedIdentification = userData.identificationNumber.trim();
 
-        const { data, error } = await supabase
-          .from('profiles')
-          .insert({
-            id: profileId,
-            full_name: userData.fullName,
-            email: userData.email,
-            phone: userData.phone,
-            identification_number: userData.identificationNumber,
-            password_hash: passwordHash,
-            role: 'user',
-            is_active: true
-          })
-          .select('id')
-          .maybeSingle<Pick<ProfileRow, 'id'>>();
+      try {
+        const syntheticEmail = `${trimmedIdentification}@id.local`.toLowerCase();
+        const { data, error } = await supabase.auth.signUp({
+          email: syntheticEmail,
+          password: userData.password,
+          options: {
+            data: {
+              identification_number: trimmedIdentification
+            }
+          }
+        });
 
         if (error) {
           console.error('Registration error:', error);
-          clearSession();
-          return false;
+          return { success: false, error: error.message };
         }
 
-        const newProfileId = data?.id ?? profileId;
-        await loadUserProfile(newProfileId);
-        return true;
+        const newUser = data.user;
+        if (!newUser) {
+          return {
+            success: false,
+            error:
+              'Supabase no devolvió un usuario activo. Desactiva la confirmación de correo para que el registro sea inmediato.'
+          };
+        }
+
+        const profilePayload: Database['public']['Tables']['profiles']['Insert'] = {
+          id: newUser.id,
+          full_name: trimmedFullName,
+          email: trimmedEmail || null,
+          phone: trimmedPhone || null,
+          identification_number: trimmedIdentification,
+          role: 'user',
+          is_active: true
+        };
+
+        const { error: profileError } = await supabase.from('profiles').insert(profilePayload);
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          return { success: false, error: profileError.message };
+        }
+
+        await loadUserProfile(newUser.id);
+        return { success: true };
       } catch (error) {
         console.error('Registration error:', error);
-        clearSession();
-        return false;
+        return { success: false, error: 'Ocurrió un error al registrar el usuario.' };
       } finally {
         setIsLoading(false);
       }
     },
-    [clearSession, loadUserProfile]
+    [loadUserProfile]
   );
 
   const logout = useCallback(() => {
-    clearSession();
-    setIsLoading(false);
-  }, [clearSession]);
+    setIsLoading(true);
+    supabase.auth
+      .signOut()
+      .catch((error) => {
+        console.error('Logout error:', error);
+      })
+      .finally(() => {
+        setUser(null);
+        setIsLoading(false);
+      });
+  }, []);
 
   const updateProfile = useCallback(
     async (updates: UpdateProfilePayload): Promise<{ success: boolean; error?: string }> => {
@@ -208,33 +246,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setIsLoading(true);
 
-      try {
-        const trimmedFullName = updates.fullName.trim();
-        const trimmedEmail = updates.email.trim();
-        const trimmedPhone = updates.phone.trim();
-        const trimmedIdentification = updates.identificationNumber?.trim();
+      const trimmedFullName = updates.fullName.trim();
+      const trimmedEmail = updates.email.trim();
+      const trimmedPhone = updates.phone.trim();
+      const trimmedIdentification = updates.identificationNumber?.trim();
+      const trimmedPassword = updates.password?.trim();
 
-        const profileUpdates: Database['public']['Tables']['profiles']['Update'] = {
-          full_name: trimmedFullName,
-          email: trimmedEmail,
-          phone: trimmedPhone
+      const profileUpdates: Database['public']['Tables']['profiles']['Update'] = {
+        full_name: trimmedFullName,
+        email: trimmedEmail || null,
+        phone: trimmedPhone || null
+      };
+
+      if (trimmedIdentification && trimmedIdentification.length > 0) {
+        profileUpdates.identification_number = trimmedIdentification;
+      }
+
+      const authUpdates: Parameters<typeof supabase.auth.updateUser>[0] = {};
+
+      if (trimmedPassword && trimmedPassword.length > 0) {
+        authUpdates.password = trimmedPassword;
+        authUpdates.data = {
+          identification_number: trimmedIdentification ?? user.identificationNumber
         };
+      } else if (trimmedIdentification && trimmedIdentification !== user.identificationNumber) {
+        authUpdates.data = { identification_number: trimmedIdentification };
+      }
 
-        if (typeof trimmedIdentification === 'string') {
-          profileUpdates.identification_number = trimmedIdentification;
+      if (trimmedIdentification && trimmedIdentification !== user.identificationNumber) {
+        authUpdates.email = `${trimmedIdentification}@id.local`.toLowerCase();
+      }
+
+      try {
+        if (Object.keys(authUpdates).length > 0) {
+          const { error: authError } = await supabase.auth.updateUser(authUpdates);
+          if (authError) {
+            console.error('Auth update error:', authError);
+            return {
+              success: false,
+              error: authError.message ?? 'No se pudo actualizar la información de autenticación.'
+            };
+          }
         }
 
-        if (updates.password && updates.password.trim().length > 0) {
-          profileUpdates.password_hash = await bcrypt.hash(updates.password, 10);
-        }
-
-        const { error } = await supabase
+        const { error: profileError } = await supabase
           .from('profiles')
           .update(profileUpdates)
           .eq('id', user.id);
 
-        if (error) {
-          console.error('Profile update error:', error);
+        if (profileError) {
+          console.error('Profile update error:', profileError);
           return { success: false, error: 'No se pudo actualizar el perfil. Inténtalo nuevamente.' };
         }
 
@@ -259,9 +320,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateProfile
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
