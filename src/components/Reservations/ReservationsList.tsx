@@ -20,13 +20,14 @@ const ReservationsList: React.FC<ReservationsListProps> = ({ isAdminView = false
 
   const filteredReservations = userReservations
     .filter(reservation => {
-      const matchesSearch = !searchTerm || 
+      const eventName = reservation.event ?? '';
+      const matchesSearch = !searchTerm ||
         reservation.spaceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reservation.event.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (isAdminView && reservation.userName.toLowerCase().includes(searchTerm.toLowerCase()));
-      
+
       const matchesStatus = !statusFilter || reservation.status === statusFilter;
-      
+
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -133,11 +134,13 @@ const ReservationsList: React.FC<ReservationsListProps> = ({ isAdminView = false
       {/* Reservations List */}
       {filteredReservations.length > 0 ? (
         <div className="space-y-4">
-          {filteredReservations.map(reservation => (
-            <div key={reservation.id} className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
+          {filteredReservations.map(reservation => {
+            const eventName = reservation.event ?? '';
+            return (
+              <div key={reservation.id} className="bg-white rounded-lg shadow p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xl font-bold text-gray-900">
                       {reservation.spaceName}
                     </h3>
@@ -177,7 +180,7 @@ const ReservationsList: React.FC<ReservationsListProps> = ({ isAdminView = false
 
                     <div className="flex items-center text-sm text-gray-600">
                       <MapPin className="h-4 w-4 mr-2" />
-                      <span>{reservation.event}</span>
+                      <span>{eventName}</span>
                     </div>
                   </div>
 
@@ -212,7 +215,8 @@ const ReservationsList: React.FC<ReservationsListProps> = ({ isAdminView = false
                 </div>
               )}
             </div>
-          ))}
+          );
+        })}
         </div>
       ) : (
         <div className="text-center py-12">
