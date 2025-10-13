@@ -94,20 +94,24 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
     }
 
     if (data) {
-      const formattedReservations: Reservation[] = data.map(reservation => ({
-        id: reservation.id,
-        spaceId: reservation.space_id,
-        spaceName: (reservation.spaces as any)?.name || '',
-        userId: reservation.user_id,
-        userName: (reservation.profiles as any)?.full_name || '',
-        userContact: (reservation.profiles as any)?.phone || '',
-        date: reservation.date,
-        startTime: reservation.start_time,
-        endTime: reservation.end_time,
-        event: reservation.event ?? '',
-        status: reservation.status as any,
-        createdAt: reservation.created_at
-      }));
+      const formattedReservations: Reservation[] = data.map(reservation => {
+        const profile = (reservation as any)?.profiles as { full_name?: string; phone?: string } | null | undefined;
+
+        return {
+          id: reservation.id,
+          spaceId: reservation.space_id,
+          spaceName: (reservation.spaces as any)?.name || '',
+          userId: reservation.user_id,
+          userName: profile?.full_name || '',
+          userContact: profile?.phone || '',
+          date: reservation.date,
+          startTime: reservation.start_time,
+          endTime: reservation.end_time,
+          event: reservation.event ?? '',
+          status: reservation.status as any,
+          createdAt: reservation.created_at
+        };
+      });
       setReservations(formattedReservations);
       setReservationsError(null);
     }
@@ -196,13 +200,20 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
   };
 
   const fetchSpaceSchedule = useCallback(async (spaceId: string, date: string): Promise<Reservation[]> => {
-    const { data, error } = await supabase
-      .from('reservations')
-      .select(`
+    const selectFields = user?.role === 'admin'
+      ? `
         *,
         spaces(name),
         profiles(full_name, phone, identification_number, email)
-      `)
+      `
+      : `
+        *,
+        spaces(name)
+      `;
+
+    const { data, error } = await supabase
+      .from('reservations')
+      .select(selectFields)
       .eq('space_id', spaceId)
       .eq('date', date)
       .neq('status', 'cancelled')
@@ -217,21 +228,25 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
       return [];
     }
 
-    return data.map(reservation => ({
-      id: reservation.id,
-      spaceId: reservation.space_id,
-      spaceName: (reservation.spaces as any)?.name || '',
-      userId: reservation.user_id,
-      userName: (reservation.profiles as any)?.full_name || '',
-      userContact: (reservation.profiles as any)?.phone || '',
-      date: reservation.date,
-      startTime: reservation.start_time,
-      endTime: reservation.end_time,
-      event: reservation.event ?? '',
-      status: reservation.status as Reservation['status'],
-      createdAt: reservation.created_at
-    }));
-  }, []);
+    return data.map(reservation => {
+      const profile = (reservation as any)?.profiles as { full_name?: string; phone?: string } | null | undefined;
+
+      return {
+        id: reservation.id,
+        spaceId: reservation.space_id,
+        spaceName: (reservation.spaces as any)?.name || '',
+        userId: reservation.user_id,
+        userName: profile?.full_name || '',
+        userContact: profile?.phone || '',
+        date: reservation.date,
+        startTime: reservation.start_time,
+        endTime: reservation.end_time,
+        event: reservation.event ?? '',
+        status: reservation.status as Reservation['status'],
+        createdAt: reservation.created_at
+      };
+    });
+  }, [user?.role]);
 
   const isTimeSlotAvailable = async (spaceId: string, date: string, startTime: string, endTime: string): Promise<boolean> => {
     const { data } = await supabase
