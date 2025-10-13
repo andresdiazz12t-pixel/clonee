@@ -28,7 +28,7 @@ const SpacesList: React.FC = () => {
 
   const filteredSpaces = spaces.filter(space => {
     const matchesSearch = space.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         space.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (space.description ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === '' || space.type === selectedType;
     return matchesSearch && matchesType;
   });

@@ -47,7 +47,7 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
         name: space.name,
         type: space.type as Space['type'],
         capacity: space.capacity,
-        description: space.description,
+        description: space.description ?? '',
         operatingHours: {
           start: space.operating_hours_start,
           end: space.operating_hours_end
