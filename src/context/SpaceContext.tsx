@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Space, SpaceContextType } from '../types';
 import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 const SpaceContext = createContext<SpaceContextType | undefined>(undefined);
 
@@ -18,21 +19,35 @@ interface SpaceProviderProps {
 
 export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    loadSpaces();
+    if (isLoading) {
+      return;
+    }
 
+    if (!user) {
+      setSpaces([]);
+      return;
+    }
+
+    void loadSpaces();
+  }, [user, isLoading]);
+
+  useEffect(() => {
     const channel = supabase
       .channel('spaces-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'spaces' }, () => {
-        loadSpaces();
+        if (user) {
+          void loadSpaces();
+        }
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   const loadSpaces = async () => {
     const { data } = await supabase
