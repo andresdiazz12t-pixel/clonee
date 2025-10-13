@@ -20,45 +20,56 @@ interface SpaceProviderProps {
 export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [spacesError, setSpacesError] = useState<string | null>(null);
+  const [isLoadingSpaces, setIsLoadingSpaces] = useState<boolean>(false);
   const { user, isLoading } = useAuth();
 
   const loadSpaces = useCallback(async () => {
     if (!user) {
       setSpaces([]);
       setSpacesError(null);
+      setIsLoadingSpaces(false);
       return;
     }
 
-    const { data, error } = await supabase
-      .from('spaces')
-      .select('*')
-      .order('created_at', { ascending: false });
+    setIsLoadingSpaces(true);
 
-    if (error) {
-      setSpacesError(error.message || 'No se pudieron cargar los espacios.');
-      return;
-    }
+    try {
+      const { data, error } = await supabase
+        .from('spaces')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    setSpacesError(null);
+      if (error) {
+        setSpacesError(error.message || 'No se pudieron cargar los espacios.');
+        return;
+      }
 
-    if (data) {
-      const formattedSpaces: Space[] = data.map(space => ({
-        id: space.id,
-        name: space.name,
-        type: space.type as Space['type'],
-        capacity: space.capacity,
-        description: space.description ?? '',
-        operatingHours: {
-          start: space.operating_hours_start,
-          end: space.operating_hours_end
-        },
-        rules: space.rules || [],
-        isActive: space.is_active,
-        imageUrl: space.image_url || undefined
-      }));
-      setSpaces(formattedSpaces);
-    } else {
-      setSpaces([]);
+      setSpacesError(null);
+
+      if (data) {
+        const formattedSpaces: Space[] = data.map(space => ({
+          id: space.id,
+          name: space.name,
+          type: space.type as Space['type'],
+          capacity: space.capacity,
+          description: space.description ?? '',
+          operatingHours: {
+            start: space.operating_hours_start,
+            end: space.operating_hours_end
+          },
+          rules: space.rules || [],
+          isActive: space.is_active,
+          imageUrl: space.image_url || undefined
+        }));
+        setSpaces(formattedSpaces);
+      } else {
+        setSpaces([]);
+      }
+    } catch (err) {
+      console.error('Error loading spaces:', err);
+      setSpacesError('Ocurrió un error inesperado al cargar los espacios.');
+    } finally {
+      setIsLoadingSpaces(false);
     }
   }, [user]);
 
@@ -70,6 +81,7 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
     if (!user) {
       setSpaces([]);
       setSpacesError(null);
+      setIsLoadingSpaces(false);
       return;
     }
 
@@ -164,7 +176,8 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
     addSpace,
     updateSpace,
     deleteSpace,
-    getSpace
+    getSpace,
+    isLoadingSpaces
   };
 
   return (
