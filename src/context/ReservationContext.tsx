@@ -104,7 +104,7 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
         date: reservation.date,
         startTime: reservation.start_time,
         endTime: reservation.end_time,
-        event: reservation.event,
+        event: reservation.event ?? '',
         status: reservation.status as any,
         createdAt: reservation.created_at
       }));
@@ -227,7 +227,7 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
       date: reservation.date,
       startTime: reservation.start_time,
       endTime: reservation.end_time,
-      event: reservation.event,
+      event: reservation.event ?? '',
       status: reservation.status as Reservation['status'],
       createdAt: reservation.created_at
     }));
