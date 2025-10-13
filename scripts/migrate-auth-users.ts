@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type User } from '@supabase/supabase-js';
 import { randomBytes } from 'node:crypto';
 import type { Database } from '../src/lib/database.types';
 
@@ -50,6 +50,38 @@ async function fetchProfiles(): Promise<ProfileRow[]> {
   return data ?? [];
 }
 
+async function findAuthUserByEmail(email: string): Promise<User | null> {
+  const normalizedEmail = email.toLowerCase();
+  let page = 1;
+  const perPage = 100;
+
+  while (true) {
+    const { data, error } = await adminClient.auth.admin.listUsers({
+      page,
+      perPage
+    });
+
+    if (error) {
+      throw new Error(`No se pudo listar usuarios de Auth: ${error.message}`);
+    }
+
+    const users = data?.users ?? [];
+    const user = users.find((candidate) => candidate.email?.toLowerCase() === normalizedEmail);
+
+    if (user) {
+      return user;
+    }
+
+    if (users.length < perPage) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return null;
+}
+
 async function createAuthUser(
   profile: ProfileRow
 ): Promise<{ userId: string | null; temporaryPassword?: string; status: MigrationResult['status']; notes?: string }> {
@@ -63,11 +95,11 @@ async function createAuthUser(
 
   const syntheticEmail = `${profile.identification_number}@id.local`.toLowerCase();
 
-  const existingUser = await adminClient.auth.admin.getUserByEmail(syntheticEmail);
+  const existingUser = await findAuthUserByEmail(syntheticEmail);
 
-  if (existingUser.data?.user) {
+  if (existingUser) {
     return {
-      userId: existingUser.data.user.id,
+      userId: existingUser.id,
       status: 'existing'
     };
   }
