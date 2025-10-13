@@ -5,6 +5,21 @@ import { useAuth } from './AuthContext';
 
 const SpaceContext = createContext<SpaceContextType | undefined>(undefined);
 
+const SPACES_FETCH_TIMEOUT_MS = 8000;
+
+type SupabaseSpaceRecord = {
+  id: string;
+  name: string;
+  type: string;
+  capacity: number;
+  description: string | null;
+  operating_hours_start: string;
+  operating_hours_end: string;
+  rules: string[] | null;
+  is_active: boolean;
+  image_url: string | null;
+};
+
 export const useSpaces = () => {
   const context = useContext(SpaceContext);
   if (context === undefined) {
@@ -20,45 +35,78 @@ interface SpaceProviderProps {
 export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [spacesError, setSpacesError] = useState<string | null>(null);
+  const [isLoadingSpaces, setIsLoadingSpaces] = useState<boolean>(false);
   const { user, isLoading } = useAuth();
 
   const loadSpaces = useCallback(async () => {
     if (!user) {
       setSpaces([]);
       setSpacesError(null);
+      setIsLoadingSpaces(false);
       return;
     }
 
-    const { data, error } = await supabase
-      .from('spaces')
-      .select('*')
-      .order('created_at', { ascending: false });
+    setIsLoadingSpaces(true);
 
-    if (error) {
-      setSpacesError(error.message || 'No se pudieron cargar los espacios.');
-      return;
-    }
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    setSpacesError(null);
+    try {
+      const fetchPromise = supabase
+        .from('spaces')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (data) {
-      const formattedSpaces: Space[] = data.map(space => ({
-        id: space.id,
-        name: space.name,
-        type: space.type as Space['type'],
-        capacity: space.capacity,
-        description: space.description ?? '',
-        operatingHours: {
-          start: space.operating_hours_start,
-          end: space.operating_hours_end
-        },
-        rules: space.rules || [],
-        isActive: space.is_active,
-        imageUrl: space.image_url || undefined
-      }));
-      setSpaces(formattedSpaces);
-    } else {
-      setSpaces([]);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('timeout'));
+        }, SPACES_FETCH_TIMEOUT_MS);
+      });
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as {
+        data: SupabaseSpaceRecord[] | null;
+        error: { message?: string } | null;
+      };
+
+      const { data, error } = response;
+
+      if (error) {
+        setSpacesError(error.message || 'No se pudieron cargar los espacios.');
+        return;
+      }
+
+      setSpacesError(null);
+
+      if (data) {
+        const formattedSpaces: Space[] = data.map(space => ({
+          id: space.id,
+          name: space.name,
+          type: space.type as Space['type'],
+          capacity: space.capacity,
+          description: space.description ?? '',
+          operatingHours: {
+            start: space.operating_hours_start,
+            end: space.operating_hours_end
+          },
+          rules: space.rules || [],
+          isActive: space.is_active,
+          imageUrl: space.image_url || undefined
+        }));
+        setSpaces(formattedSpaces);
+      } else {
+        setSpaces([]);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message === 'timeout') {
+        setSpacesError('La carga de espacios está tardando más de lo esperado. Intenta nuevamente.');
+      } else {
+        console.error('Error loading spaces:', err);
+        setSpacesError('Ocurrió un error inesperado al cargar los espacios.');
+      }
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      setIsLoadingSpaces(false);
     }
   }, [user]);
 
@@ -70,6 +118,7 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
     if (!user) {
       setSpaces([]);
       setSpacesError(null);
+      setIsLoadingSpaces(false);
       return;
     }
 
@@ -164,7 +213,8 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
     addSpace,
     updateSpace,
     deleteSpace,
-    getSpace
+    getSpace,
+    isLoadingSpaces
   };
 
   return (

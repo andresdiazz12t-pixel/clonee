@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, Filter, Plus } from 'lucide-react';
 import { useSpaces } from '../../context/SpaceContext';
 import { useAuth } from '../../context/AuthContext';
@@ -9,7 +9,7 @@ import ReservationModal from '../Reservations/ReservationModal';
 
 const SpacesList: React.FC = () => {
   const { user } = useAuth();
-  const { spaces, spacesError, loadSpaces, deleteSpace } = useSpaces();
+  const { spaces, spacesError, loadSpaces, deleteSpace, isLoadingSpaces } = useSpaces();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('');
   const [showSpaceForm, setShowSpaceForm] = useState(false);
@@ -26,12 +26,21 @@ const SpacesList: React.FC = () => {
     { value: 'salon', label: 'Salón' },
   ];
 
+  useEffect(() => {
+    if (user && !isLoadingSpaces && spaces.length === 0) {
+      void loadSpaces();
+    }
+  }, [user, isLoadingSpaces, spaces.length, loadSpaces]);
+
   const filteredSpaces = spaces.filter(space => {
     const matchesSearch = space.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (space.description ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === '' || space.type === selectedType;
     return matchesSearch && matchesType;
   });
+
+  const isInitialLoad = isLoadingSpaces && spaces.length === 0;
+  const isUpdatingSpaces = isLoadingSpaces && spaces.length > 0;
 
   const handleEditSpace = (space: Space) => {
     setEditingSpace(space);
@@ -120,22 +129,43 @@ const SpacesList: React.FC = () => {
         </div>
 
         <div className="mt-4 text-sm text-gray-600">
-          Mostrando {filteredSpaces.length} de {spaces.length} espacios
+          {isUpdatingSpaces ? 'Actualizando espacios...' : `Mostrando ${filteredSpaces.length} de ${spaces.length} espacios`}
         </div>
       </div>
 
       {/* Spaces Grid */}
-      {filteredSpaces.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredSpaces.map(space => (
-            <SpaceCard
-              key={space.id}
-              space={space}
-              onReserve={handleReserve}
-              onEdit={user?.role === 'admin' ? handleEditSpace : undefined}
-              onDelete={user?.role === 'admin' ? handleDeleteSpace : undefined}
-            />
-          ))}
+      {isInitialLoad ? (
+        <div className="text-center py-12">
+          <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Cargando espacios disponibles
+            </h3>
+            <p className="text-gray-600">
+              Esto puede tardar unos segundos mientras obtenemos la información desde el servidor.
+            </p>
+          </div>
+        </div>
+      ) : filteredSpaces.length > 0 ? (
+        <div className="relative">
+          {isUpdatingSpaces ? (
+            <div className="absolute inset-x-0 -top-6 flex justify-center">
+              <span className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
+                Actualizando listado…
+              </span>
+            </div>
+          ) : null}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredSpaces.map(space => (
+              <SpaceCard
+                key={space.id}
+                space={space}
+                onReserve={handleReserve}
+                onEdit={user?.role === 'admin' ? handleEditSpace : undefined}
+                onDelete={user?.role === 'admin' ? handleDeleteSpace : undefined}
+              />
+            ))}
+          </div>
         </div>
       ) : (
         <div className="text-center py-12">
