@@ -75,6 +75,7 @@ export interface SpaceContextType {
   updateSpace: (id: string, space: Partial<Space>) => Promise<boolean>;
   deleteSpace: (id: string) => void;
   getSpace: (id: string) => Space | undefined;
+  isLoadingSpaces: boolean;
 }
 
 export interface ReservationContextType {
