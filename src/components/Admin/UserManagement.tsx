@@ -73,13 +73,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     try {
       setUpdatingUserId(user.id);
       setError(null);
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ role: nextRole })
-        .eq('id', user.id);
+      const { error: rpcError } = await supabase.rpc('set_user_role', {
+        user_id: user.id,
+        new_role: nextRole,
+      });
 
-      if (updateError) {
-        throw updateError;
+      if (rpcError) {
+        throw rpcError;
       }
 
       await fetchUsers();
