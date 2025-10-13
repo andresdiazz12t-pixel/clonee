@@ -187,12 +187,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return { success: false, error: error.message };
         }
 
-        const newUser = data.user;
+        let session = data.session ?? null;
+
+        if (!session) {
+          const { data: currentSessionData, error: currentSessionError } =
+            await supabase.auth.getSession();
+
+          if (currentSessionError) {
+            console.error('Session retrieval error:', currentSessionError);
+          }
+
+          session = currentSessionData?.session ?? null;
+        }
+
+        if (!session) {
+          const {
+            data: signInData,
+            error: signInError
+          } = await supabase.auth.signInWithPassword({
+            email: syntheticEmail,
+            password: userData.password
+          });
+
+          if (signInError) {
+            console.error('Auto login error after registration:', signInError);
+            return {
+              success: false,
+              error:
+                'No se pudo iniciar sesión automáticamente. Si la verificación de correo está activada, revisa tu bandeja para confirmar la cuenta.'
+            };
+          }
+
+          session = signInData.session ?? null;
+        }
+
+        if (!session) {
+          return {
+            success: false,
+            error:
+              'No se pudo iniciar sesión después del registro. Si la verificación de correo está activada, el alta quedará pendiente hasta que confirmes tu cuenta.'
+          };
+        }
+
+        const newUser = data.user ?? session.user ?? null;
         if (!newUser) {
           return {
             success: false,
             error:
-              'Supabase no devolvió un usuario activo. Desactiva la confirmación de correo para que el registro sea inmediato.'
+              'Supabase no devolvió un usuario activo. Si la verificación de correo está activada, el registro quedará pendiente hasta que confirmes tu cuenta.'
           };
         }
 
@@ -210,7 +252,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (profileError) {
           console.error('Profile creation error:', profileError);
-          return { success: false, error: profileError.message };
+          await supabase.auth.signOut();
+          return {
+            success: false,
+            error:
+              'El alta no se completó correctamente. Vuelve a intentarlo una vez confirmada tu cuenta si aplica la verificación de correo.'
+          };
         }
 
         await loadUserProfile(newUser.id);
