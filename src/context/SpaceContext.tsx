@@ -5,6 +5,21 @@ import { useAuth } from './AuthContext';
 
 const SpaceContext = createContext<SpaceContextType | undefined>(undefined);
 
+const SPACES_FETCH_TIMEOUT_MS = 8000;
+
+type SupabaseSpaceRecord = {
+  id: string;
+  name: string;
+  type: string;
+  capacity: number;
+  description: string | null;
+  operating_hours_start: string;
+  operating_hours_end: string;
+  rules: string[] | null;
+  is_active: boolean;
+  image_url: string | null;
+};
+
 export const useSpaces = () => {
   const context = useContext(SpaceContext);
   if (context === undefined) {
@@ -33,11 +48,26 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
 
     setIsLoadingSpaces(true);
 
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
     try {
-      const { data, error } = await supabase
+      const fetchPromise = supabase
         .from('spaces')
         .select('*')
         .order('created_at', { ascending: false });
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('timeout'));
+        }, SPACES_FETCH_TIMEOUT_MS);
+      });
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as {
+        data: SupabaseSpaceRecord[] | null;
+        error: { message?: string } | null;
+      };
+
+      const { data, error } = response;
 
       if (error) {
         setSpacesError(error.message || 'No se pudieron cargar los espacios.');
@@ -66,9 +96,16 @@ export const SpaceProvider: React.FC<SpaceProviderProps> = ({ children }) => {
         setSpaces([]);
       }
     } catch (err) {
-      console.error('Error loading spaces:', err);
-      setSpacesError('Ocurrió un error inesperado al cargar los espacios.');
+      if (err instanceof Error && err.message === 'timeout') {
+        setSpacesError('La carga de espacios está tardando más de lo esperado. Intenta nuevamente.');
+      } else {
+        console.error('Error loading spaces:', err);
+        setSpacesError('Ocurrió un error inesperado al cargar los espacios.');
+      }
     } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       setIsLoadingSpaces(false);
     }
   }, [user]);

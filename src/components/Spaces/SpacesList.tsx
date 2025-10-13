@@ -39,6 +39,9 @@ const SpacesList: React.FC = () => {
     return matchesSearch && matchesType;
   });
 
+  const isInitialLoad = isLoadingSpaces && spaces.length === 0;
+  const isUpdatingSpaces = isLoadingSpaces && spaces.length > 0;
+
   const handleEditSpace = (space: Space) => {
     setEditingSpace(space);
     setShowSpaceForm(true);
@@ -126,12 +129,12 @@ const SpacesList: React.FC = () => {
         </div>
 
         <div className="mt-4 text-sm text-gray-600">
-          {isLoadingSpaces ? 'Cargando espacios...' : `Mostrando ${filteredSpaces.length} de ${spaces.length} espacios`}
+          {isUpdatingSpaces ? 'Actualizando espacios...' : `Mostrando ${filteredSpaces.length} de ${spaces.length} espacios`}
         </div>
       </div>
 
       {/* Spaces Grid */}
-      {isLoadingSpaces ? (
+      {isInitialLoad ? (
         <div className="text-center py-12">
           <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -144,16 +147,25 @@ const SpacesList: React.FC = () => {
           </div>
         </div>
       ) : filteredSpaces.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredSpaces.map(space => (
-            <SpaceCard
-              key={space.id}
-              space={space}
-              onReserve={handleReserve}
-              onEdit={user?.role === 'admin' ? handleEditSpace : undefined}
-              onDelete={user?.role === 'admin' ? handleDeleteSpace : undefined}
-            />
-          ))}
+        <div className="relative">
+          {isUpdatingSpaces ? (
+            <div className="absolute inset-x-0 -top-6 flex justify-center">
+              <span className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-800 bg-blue-100 rounded-full">
+                Actualizando listado…
+              </span>
+            </div>
+          ) : null}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredSpaces.map(space => (
+              <SpaceCard
+                key={space.id}
+                space={space}
+                onReserve={handleReserve}
+                onEdit={user?.role === 'admin' ? handleEditSpace : undefined}
+                onDelete={user?.role === 'admin' ? handleDeleteSpace : undefined}
+              />
+            ))}
+          </div>
         </div>
       ) : (
         <div className="text-center py-12">
