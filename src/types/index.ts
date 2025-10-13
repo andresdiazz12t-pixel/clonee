@@ -87,4 +87,6 @@ export interface ReservationContextType {
   isTimeSlotAvailable: (spaceId: string, date: string, startTime: string, endTime: string) => Promise<boolean>;
   maxAdvanceDays: number | null;
   maxConcurrentReservations: number | null;
+  isSettingsLoading: boolean;
+  settingsError: string | null;
 }
