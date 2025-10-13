@@ -22,6 +22,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
     maxAdvanceDays,
     maxConcurrentReservations,
     getUserReservations,
+    isSettingsLoading,
+    settingsError,
   } = useReservations();
   
   const [loading, setLoading] = useState(false);
@@ -85,6 +87,54 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
   }, [fetchSpaceSchedule, formData.date, reservations, spaceId]);
 
   if (!space || !user) return null;
+
+  if (isSettingsLoading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg max-w-md w-full p-6 text-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Clock className="h-8 w-8 text-blue-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">
+            Cargando configuraciones
+          </h3>
+          <p className="text-gray-600">
+            Estamos obteniendo las configuraciones del sistema para crear tu reserva.
+          </p>
+          <button
+            onClick={onClose}
+            className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (settingsError) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg max-w-md w-full p-6 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <X className="h-8 w-8 text-red-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">
+            No se pudo cargar la configuración
+          </h3>
+          <p className="text-gray-600">
+            {settingsError}
+          </p>
+          <button
+            onClick={onClose}
+            className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const generateTimeOptions = () => {
     const options = [];

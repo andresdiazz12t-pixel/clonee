@@ -23,10 +23,27 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
   const [reservationsError, setReservationsError] = useState<string | null>(null);
   const [maxAdvanceDays, setMaxAdvanceDays] = useState<number | null>(null);
   const [maxConcurrentReservations, setMaxConcurrentReservations] = useState<number | null>(null);
+  const [isSettingsLoading, setIsSettingsLoading] = useState<boolean>(true);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const { user, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!user) {
+      setMaxAdvanceDays(null);
+      setMaxConcurrentReservations(null);
+      setSettingsError(null);
+      setIsSettingsLoading(false);
+      return;
+    }
+
     const loadSystemSettings = async () => {
+      setIsSettingsLoading(true);
+      setSettingsError(null);
+
       const { data, error } = await supabase
         .from('system_settings')
         .select('max_advance_days, max_concurrent_reservations')
@@ -35,15 +52,20 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
 
       if (error) {
         console.error('Error loading system settings:', error);
+        setSettingsError('No se pudieron cargar las configuraciones del sistema.');
+        setMaxAdvanceDays(null);
+        setMaxConcurrentReservations(null);
+        setIsSettingsLoading(false);
         return;
       }
 
       setMaxAdvanceDays(data?.max_advance_days ?? null);
       setMaxConcurrentReservations(data?.max_concurrent_reservations ?? null);
+      setIsSettingsLoading(false);
     };
 
     loadSystemSettings();
-  }, []);
+  }, [isAuthLoading, user]);
 
   const loadReservations = useCallback(async () => {
     if (!user) {
@@ -247,7 +269,9 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
     fetchSpaceSchedule,
     isTimeSlotAvailable,
     maxAdvanceDays,
-    maxConcurrentReservations
+    maxConcurrentReservations,
+    isSettingsLoading,
+    settingsError
   };
 
   return (
