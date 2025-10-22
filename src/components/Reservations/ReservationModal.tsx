@@ -267,7 +267,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
             Tu reserva para {space.name} ha sido confirmada exitosamente.
           </p>
           <div className="bg-gray-50 rounded-lg p-4 text-left">
-            <p><strong>Fecha:</strong> {new Date(formData.date).toLocaleDateString('es-ES')}</p>
+            <p><strong>Fecha:</strong> {parseLocalDate(formData.date).toLocaleDateString('es-ES')}</p>
             <p><strong>Horario:</strong> {formData.startTime} - {formData.endTime}</p>
             <p><strong>Evento:</strong> {formData.event}</p>
           </div>
@@ -389,7 +389,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
               {!scheduleLoading && !scheduleError && existingReservations.length > 0 && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
                   <h4 className="font-medium text-yellow-800 mb-2">
-                    Reservas existentes para {new Date(formData.date).toLocaleDateString('es-ES')}:
+                    Reservas existentes para {parseLocalDate(formData.date).toLocaleDateString('es-ES')}:
                   </h4>
                   <div className="space-y-1">
                     {existingReservations.map(reservation => (
