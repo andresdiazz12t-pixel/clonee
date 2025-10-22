@@ -4,7 +4,7 @@ import { useSpaces } from '../../context/SpaceContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useAuth } from '../../context/AuthContext';
 import { Reservation } from '../../types';
-import { timeToMinutes, getTodayLocalISO } from '../../utils/dateUtils';
+import { timeToMinutes, getTodayLocalISO, parseLocalDate } from '../../utils/dateUtils';
 
 interface ReservationModalProps {
   spaceId: string;
@@ -192,7 +192,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
     }
 
     // Check if date is not in the past
-    const selectedDate = new Date(formData.date);
+    const selectedDate = parseLocalDate(formData.date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -215,7 +215,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
 
     if (maxConcurrentReservations !== null) {
       const activeReservations = getUserReservations(user.id).filter((reservation) => {
-        const reservationDate = new Date(reservation.date);
+        const reservationDate = parseLocalDate(reservation.date);
         reservationDate.setHours(0, 0, 0, 0);
         return reservationDate >= today;
       });

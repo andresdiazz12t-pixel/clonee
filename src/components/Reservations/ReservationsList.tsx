@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, Clock, MapPin, X, Filter, Search, User } from 'lucide-react';
 import { useReservations } from '../../context/ReservationContext';
 import { useAuth } from '../../context/AuthContext';
-import { formatDate, isToday, isTomorrow, isWithin24Hours } from '../../utils/dateUtils';
+import { formatDate, isToday, isTomorrow, isWithin24Hours, parseLocalDate } from '../../utils/dateUtils';
 
 interface ReservationsListProps {
   isAdminView?: boolean;
@@ -30,7 +30,7 @@ const ReservationsList: React.FC<ReservationsListProps> = ({ isAdminView = false
 
       return matchesSearch && matchesStatus;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
 
   const getStatusColor = (status: string) => {
     const colors = {
