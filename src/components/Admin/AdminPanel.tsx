@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Settings, BarChart3, Users, MapPin, Calendar, Plus } from 'lucide-react';
 import { useSpaces } from '../../context/SpaceContext';
 import { useReservations } from '../../context/ReservationContext';
-import { getTodayLocalISO } from '../../utils/dateUtils';
+import { getTodayLocalISO, parseLocalDate } from '../../utils/dateUtils';
 import SpaceForm from '../Spaces/SpaceForm';
 
 type AdminPanelProps = {
@@ -33,8 +33,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   }, {} as Record<string, number>);
 
   const monthlyReservations = reservations.reduce((acc, reservation) => {
-    const month = new Date(reservation.date).toISOString().substr(0, 7);
-    acc[month] = (acc[month] || 0) + 1;
+    const reservationDate = parseLocalDate(reservation.date);
+    const monthKey = `${reservationDate.getFullYear()}-${String(reservationDate.getMonth() + 1).padStart(2, '0')}`;
+    acc[monthKey] = (acc[monthKey] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -165,9 +166,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               .map(([month, count]) => (
                 <div key={month} className="flex items-center justify-between">
                   <span className="text-gray-700">
-                    {new Date(month + '-01').toLocaleDateString('es-ES', { 
-                      year: 'numeric', 
-                      month: 'long' 
+                    {parseLocalDate(`${month}-01`).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'long'
                     })}
                   </span>
                   <span className="font-medium text-gray-900">{count} reservas</span>

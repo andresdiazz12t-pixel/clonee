@@ -3,7 +3,7 @@ import { Calendar, Clock, MapPin, Users, UserCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSpaces } from '../../context/SpaceContext';
 import { useReservations } from '../../context/ReservationContext';
-import { formatDate, isToday, isTomorrow } from '../../utils/dateUtils';
+import { formatDate, isToday, isTomorrow, parseLocalDate } from '../../utils/dateUtils';
 import { supabase } from '../../lib/supabase';
 
 interface DashboardProps {
@@ -57,9 +57,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
   const activeSpaces = spaces.filter(space => space.isActive);
   const userReservations = getUserReservations(user.id);
   const todayReservations = reservations.filter(res => isToday(res.date) && res.status !== 'cancelled');
-  const upcomingReservations = userReservations.filter(res => 
-    new Date(res.date) >= new Date() && res.status !== 'cancelled'
-  ).slice(0, 3);
+  const now = new Date();
+  const upcomingReservations = userReservations
+    .filter(res => {
+      const reservationDate = parseLocalDate(res.date);
+      return reservationDate >= now && res.status !== 'cancelled';
+    })
+    .slice(0, 3);
 
   const stats = user.role === 'admin' 
     ? [

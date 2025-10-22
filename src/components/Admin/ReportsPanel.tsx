@@ -3,6 +3,7 @@ import { Activity, BarChart3, CalendarCheck, TrendingUp } from 'lucide-react';
 import { useReservations } from '../../context/ReservationContext';
 import { useSpaces } from '../../context/SpaceContext';
 import { Reservation } from '../../types';
+import { parseLocalDate } from '../../utils/dateUtils';
 
 type ReportsPanelProps = {
   onBack?: () => void;
@@ -46,7 +47,7 @@ const ReportsPanel: React.FC<ReportsPanelProps> = ({ onBack }) => {
     }
 
     const monthlyEntries = (reservation: Reservation) => {
-      const reservationDate = new Date(reservation.date);
+      const reservationDate = parseLocalDate(reservation.date);
       if (Number.isNaN(reservationDate.getTime())) {
         return null;
       }
