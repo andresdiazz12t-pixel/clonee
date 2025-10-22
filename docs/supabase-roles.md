@@ -10,6 +10,10 @@ Para actualizar el rol de un usuario se expone la función `set_user_role` como 
 
 Asegúrate de asignar el rol `admin` directamente en la base de datos (por ejemplo, mediante la propia función `set_user_role`) al menos a un usuario para poder gestionar roles desde la interfaz de administración.
 
+## Gestión de espacios
+
+Bajo las nuevas políticas de RLS, únicamente los perfiles con rol `admin` pueden crear, editar o desactivar registros en `public.spaces`. Los usuarios autenticados sin permisos de administración mantienen acceso de solo lectura.
+
 ## Autenticación basada en Supabase Auth
 
 - Los usuarios se autentican ahora contra Supabase Auth utilizando un correo sintético generado a partir de su número de identificación (`<identificacion>@id.local`). Este correo no se expone en la interfaz, pero debe permanecer sincronizado con `public.profiles.identification_number` para que el inicio de sesión funcione.
