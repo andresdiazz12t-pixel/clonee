@@ -164,6 +164,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
             </button>
 
             <button
+              onClick={() => onViewChange('calendar')}
+              className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-sky-500 hover:bg-sky-50 transition-all"
+            >
+              <div className="flex items-center">
+                <Calendar className="h-5 w-5 text-sky-600 mr-3" />
+                <div>
+                  <h3 className="font-medium text-gray-900">Calendario de reservas</h3>
+                  <p className="text-sm text-gray-500">Visualiza disponibilidad mensual y semanal</p>
+                </div>
+              </div>
+            </button>
+
+            <button
               onClick={() => onViewChange(user.role === 'admin' ? 'all-reservations' : 'my-reservations')}
               className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all"
             >

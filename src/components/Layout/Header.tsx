@@ -16,6 +16,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
     ? [
         { id: 'dashboard', label: 'Inicio', icon: Home },
         { id: 'spaces', label: 'Espacios', icon: Calendar },
+        { id: 'calendar', label: 'Calendario', icon: Calendar },
         { id: 'all-reservations', label: 'Todas las Reservas', icon: Calendar },
         { id: 'profile', label: 'Mi Perfil', icon: UserCircle },
         { id: 'admin-panel', label: 'Panel Admin', icon: Settings },
@@ -23,6 +24,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
     : [
         { id: 'dashboard', label: 'Inicio', icon: Home },
         { id: 'spaces', label: 'Espacios', icon: Calendar },
+        { id: 'calendar', label: 'Calendario', icon: Calendar },
         { id: 'my-reservations', label: 'Mis Reservas', icon: Calendar },
         { id: 'profile', label: 'Mi Perfil', icon: UserCircle },
       ];

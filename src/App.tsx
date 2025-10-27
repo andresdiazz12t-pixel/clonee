@@ -12,6 +12,7 @@ import UserManagement from './components/Admin/UserManagement';
 import ReportsPanel from './components/Admin/ReportsPanel';
 import AdvancedSettings from './components/Admin/AdvancedSettings';
 import ProfileSettings from './components/Profile/ProfileSettings';
+import CalendarView from './pages/CalendarView';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -42,6 +43,8 @@ const AppContent: React.FC = () => {
         return <ReservationsList isAdminView={false} />;
       case 'all-reservations':
         return <ReservationsList isAdminView={true} />;
+      case 'calendar':
+        return <CalendarView />;
       case 'admin-panel':
         return user.role === 'admin' ? (
           <AdminPanel

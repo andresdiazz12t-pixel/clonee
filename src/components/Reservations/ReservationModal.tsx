@@ -9,9 +9,12 @@ import { timeToMinutes, getTodayLocalISO, parseLocalDate } from '../../utils/dat
 interface ReservationModalProps {
   spaceId: string;
   onClose: () => void;
+  initialDate?: string;
+  initialStartTime?: string;
+  initialEndTime?: string;
 }
 
-const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose }) => {
+const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose, initialDate, initialStartTime, initialEndTime }) => {
   const { user } = useAuth();
   const { getSpace } = useSpaces();
   const {
@@ -33,9 +36,9 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
   const space = getSpace(spaceId);
 
   const [formData, setFormData] = useState({
-    date: '',
-    startTime: '',
-    endTime: '',
+    date: initialDate ?? '',
+    startTime: initialStartTime ?? '',
+    endTime: initialEndTime ?? '',
     event: '',
   });
 
@@ -44,10 +47,17 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ spaceId, onClose })
   const [scheduleError, setScheduleError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Set minimum date to today
     const today = getTodayLocalISO();
-    setFormData(prev => ({ ...prev, date: today }));
-  }, []);
+    setFormData(prev => ({
+      ...prev,
+      date: (() => {
+        const candidate = initialDate ?? prev.date;
+        return candidate && candidate.trim() !== '' ? candidate : today;
+      })(),
+      startTime: initialStartTime ?? prev.startTime,
+      endTime: initialEndTime ?? prev.endTime,
+    }));
+  }, [initialDate, initialStartTime, initialEndTime, spaceId]);
 
   useEffect(() => {
     let isSubscribed = true;
