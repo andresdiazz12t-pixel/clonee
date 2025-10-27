@@ -73,17 +73,20 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
       return;
     }
 
-    let query = supabase
-      .from('reservations')
-      .select(`
+    const selectFields = user.role === 'admin'
+      ? `
         *,
         spaces(name),
         profiles(full_name, phone, identification_number, email)
-      `);
+      `
+      : `
+        *,
+        spaces(name)
+      `;
 
-    if (user.role !== 'admin') {
-      query = query.eq('user_id', user.id);
-    }
+    const query = supabase
+      .from('reservations')
+      .select(selectFields);
 
     const { data, error } = await query.order('created_at', { ascending: false });
 
@@ -95,7 +98,9 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
 
     if (data) {
       const formattedReservations: Reservation[] = data.map(reservation => {
-        const profile = (reservation as any)?.profiles as { full_name?: string; phone?: string } | null | undefined;
+        const profile = user.role === 'admin'
+          ? (reservation as any)?.profiles as { full_name?: string; phone?: string } | null | undefined
+          : null;
 
         return {
           id: reservation.id,

@@ -90,6 +90,14 @@ const CalendarView: React.FC = () => {
     [spaces, selectedSpaceId]
   );
 
+  const getReservationContainerClass = (isOwnReservation: boolean) =>
+    isOwnReservation
+      ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+      : 'bg-blue-50 border border-blue-100 text-blue-800';
+
+  const getReservationDetailClass = (isOwnReservation: boolean) =>
+    isOwnReservation ? 'text-emerald-600' : 'text-blue-600';
+
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
     setCurrentDate(prev => {
@@ -256,6 +264,19 @@ const CalendarView: React.FC = () => {
         </div>
       </div>
 
+      <div className="mb-6">
+        <div className="inline-flex flex-wrap items-center gap-4 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm">
+          <div className="flex items-center text-sm text-gray-600">
+            <span className="w-3 h-3 rounded-full bg-blue-500/80 border border-blue-200 mr-2" aria-hidden />
+            <span>Reservas existentes</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-600">
+            <span className="w-3 h-3 rounded-full bg-emerald-500/80 border border-emerald-200 mr-2" aria-hidden />
+            <span>Tus reservas</span>
+          </div>
+        </div>
+      </div>
+
       {viewMode === 'month' ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-t-xl overflow-hidden">
@@ -297,26 +318,38 @@ const CalendarView: React.FC = () => {
                     )}
                   </div>
                   <div className="mt-2 space-y-2 overflow-hidden">
-                    {reservationsForDay.slice(0, 3).map(reservation => (
-                      <div
-                        key={reservation.id}
-                        className="bg-blue-50 border border-blue-100 text-blue-800 rounded-md px-2 py-1 text-xs"
-                      >
-                        <div className="font-semibold truncate">
-                          {reservation.event || 'Reserva'}
-                        </div>
-                        <div className="flex items-center text-[11px] text-blue-600">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {reservation.startTime} - {reservation.endTime}
-                        </div>
-                        {!selectedSpaceId && (
-                          <div className="flex items-center text-[11px] text-blue-600 mt-1">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            <span className="truncate">{reservation.spaceName}</span>
+                    {reservationsForDay.slice(0, 3).map(reservation => {
+                      const isOwnReservation = user?.id === reservation.userId;
+                      const detailClass = getReservationDetailClass(isOwnReservation);
+
+                      return (
+                        <div
+                          key={reservation.id}
+                          className={`${getReservationContainerClass(isOwnReservation)} rounded-md px-2 py-1 text-xs`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-semibold truncate">
+                              {reservation.event || 'Reserva'}
+                            </div>
+                            {isOwnReservation && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold">
+                                Tu reserva
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <div className={`flex items-center text-[11px] ${detailClass}`}>
+                            <Clock className="h-3 w-3 mr-1" />
+                            {reservation.startTime} - {reservation.endTime}
+                          </div>
+                          {!selectedSpaceId && (
+                            <div className={`flex items-center text-[11px] ${detailClass} mt-1`}>
+                              <MapPin className="h-3 w-3 mr-1" />
+                              <span className="truncate">{reservation.spaceName}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                     {reservationsForDay.length > 3 && (
                       <div className="text-xs text-gray-500">
                         +{reservationsForDay.length - 3} reservas más
@@ -393,40 +426,59 @@ const CalendarView: React.FC = () => {
                             slotDateTime.setHours(hours, minutes, 0, 0);
                             const isPast = slotDateTime < now;
 
-                            return (
-                              <td key={`${isoDate}-${slot}`} className="px-4 py-2 align-top">
-                                {reservationsInSlot.length > 0 ? (
-                                  <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-md px-2 py-1 text-xs">
-                                    <div className="font-semibold truncate">
-                                      {reservationsInSlot[0].event || 'Reserva'}
+                            const slotContent = (() => {
+                              if (reservationsInSlot.length > 0) {
+                                const reservation = reservationsInSlot[0];
+                                const isOwnReservation = user?.id === reservation.userId;
+                                const detailClass = getReservationDetailClass(isOwnReservation);
+
+                                return (
+                                  <div className={`${getReservationContainerClass(isOwnReservation)} rounded-md px-2 py-1 text-xs`}>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="font-semibold truncate">
+                                        {reservation.event || 'Reserva'}
+                                      </div>
+                                      {isOwnReservation && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold">
+                                          Tu reserva
+                                        </span>
+                                      )}
                                     </div>
-                                    <div className="text-[11px] text-blue-600">
-                                      {reservationsInSlot[0].startTime} - {reservationsInSlot[0].endTime}
+                                    <div className={`text-[11px] ${detailClass}`}>
+                                      {reservation.startTime} - {reservation.endTime}
                                     </div>
                                     {user?.role === 'admin' && (
-                                      <div className="text-[11px] text-blue-600 truncate mt-1">
-                                        {reservationsInSlot[0].userName || 'Reservado'}
+                                      <div className={`text-[11px] ${detailClass} truncate mt-1`}>
+                                        {reservation.userName || 'Reservado'}
                                       </div>
                                     )}
                                   </div>
-                                ) : (
-                                  <button
-                                    onClick={() => handleSlotSelection({
-                                      spaceId: selectedSpace.id,
-                                      date: isoDate,
-                                      startTime: slot,
-                                      endTime: slotEndTime,
-                                    })}
-                                    disabled={isPast}
-                                    className={`w-full h-20 rounded-md border border-dashed text-xs font-medium transition-colors ${
-                                      isPast
-                                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                                        : 'border-green-300 text-green-600 hover:bg-green-50'
-                                    }`}
-                                  >
-                                    {isPast ? 'No disponible' : 'Disponible'}
-                                  </button>
-                                )}
+                                );
+                              }
+
+                              return (
+                                <button
+                                  onClick={() => handleSlotSelection({
+                                    spaceId: selectedSpace.id,
+                                    date: isoDate,
+                                    startTime: slot,
+                                    endTime: slotEndTime,
+                                  })}
+                                  disabled={isPast}
+                                  className={`w-full h-20 rounded-md border border-dashed text-xs font-medium transition-colors ${
+                                    isPast
+                                      ? 'border-gray-200 text-gray-300 cursor-not-allowed'
+                                      : 'border-green-300 text-green-600 hover:bg-green-50'
+                                  }`}
+                                >
+                                  {isPast ? 'No disponible' : 'Disponible'}
+                                </button>
+                              );
+                            })();
+
+                            return (
+                              <td key={`${isoDate}-${slot}`} className="px-4 py-2 align-top">
+                                {slotContent}
                               </td>
                             );
                           })}
