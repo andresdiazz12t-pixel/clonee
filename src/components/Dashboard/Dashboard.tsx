@@ -80,28 +80,35 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
         { label: 'Espacios Disponibles', value: activeSpaces.length, icon: MapPin, color: 'purple' },
       ];
 
-  const getStatColor = (color: string) => {
-    const colors = {
-      blue: 'bg-blue-500',
-      green: 'bg-green-500',
-      purple: 'bg-purple-500',
-      orange: 'bg-orange-500',
+  const getStatGradient = (color: string) => {
+    const gradients = {
+      blue: 'from-primary-500 to-primary-600',
+      green: 'from-success-500 to-success-600',
+      purple: 'from-primary-600 to-primary-700',
+      orange: 'from-warning-500 to-warning-600',
     };
-    return colors[color as keyof typeof colors];
+    return gradients[color as keyof typeof gradients];
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Bienvenido, {user.fullName}
-        </h1>
-        <p className="text-gray-600 mt-2">
-          {user.role === 'admin' 
-            ? 'Panel de administración de espacios comunitarios' 
-            : 'Gestiona tus reservas de espacios comunitarios'
-          }
-        </p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+      <div className="mb-8 animate-slide-in-up">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 flex items-center justify-center text-white font-bold text-xl shadow-glow ring-4 ring-primary-500/10">
+            {user.fullName.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 leading-tight">
+              Bienvenido, {user.fullName}
+            </h1>
+            <p className="text-neutral-600 mt-1 text-base">
+              {user.role === 'admin'
+                ? 'Panel de administración de espacios comunitarios'
+                : 'Gestiona tus reservas de espacios comunitarios'
+              }
+            </p>
+          </div>
+        </div>
       </div>
 
       {reservationsError && (
@@ -122,19 +129,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
         </div>
       )}
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={index} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className={`p-3 rounded-full ${getStatColor(stat.color)}`}>
-                  <Icon className="h-6 w-6 text-white" />
+            <div
+              key={index}
+              className="stat-card animate-slide-in-up"
+              style={{ animationDelay: `${index * 75}ms` }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-600 mb-2">{stat.label}</p>
+                  <p className="text-3xl font-bold text-neutral-900">{stat.value}</p>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <div className={`p-4 rounded-2xl bg-gradient-to-br ${getStatGradient(stat.color)} shadow-md`}>
+                  <Icon className="h-7 w-7 text-white" />
                 </div>
               </div>
             </div>
@@ -143,103 +153,136 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Acciones Rápidas</h2>
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-md border border-neutral-100/50 p-6 hover:shadow-lg transition-all duration-300 animate-slide-in-up" style={{ animationDelay: '300ms' }}>
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-md">
+              <Calendar className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-neutral-900">Acciones Rápidas</h2>
+          </div>
           <div className="space-y-3">
             <button
               onClick={() => onViewChange('spaces')}
-              className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all"
+              className="action-card group"
             >
-              <div className="flex items-center">
-                <Calendar className="h-5 w-5 text-blue-600 mr-3" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Ver Espacios</h3>
-                  <p className="text-sm text-gray-500">Explora los espacios disponibles</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-md group-hover:shadow-lg transition-shadow">
+                    <MapPin className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-neutral-900 group-hover:text-primary-700 transition-colors">Ver Espacios</h3>
+                    <p className="text-sm text-neutral-600">Explora los espacios disponibles</p>
+                  </div>
                 </div>
+                <div className="text-primary-600 group-hover:translate-x-1 transition-transform">→</div>
               </div>
             </button>
 
             <button
               onClick={() => onViewChange('calendar')}
-              className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-sky-500 hover:bg-sky-50 transition-all"
+              className="action-card group"
             >
-              <div className="flex items-center">
-                <Calendar className="h-5 w-5 text-sky-600 mr-3" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Calendario de reservas</h3>
-                  <p className="text-sm text-gray-500">Visualiza disponibilidad mensual y semanal</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 shadow-md group-hover:shadow-lg transition-shadow">
+                    <Calendar className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-neutral-900 group-hover:text-primary-700 transition-colors">Calendario de reservas</h3>
+                    <p className="text-sm text-neutral-600">Visualiza disponibilidad mensual y semanal</p>
+                  </div>
                 </div>
+                <div className="text-primary-600 group-hover:translate-x-1 transition-transform">→</div>
               </div>
             </button>
 
             <button
               onClick={() => onViewChange(user.role === 'admin' ? 'all-reservations' : 'my-reservations')}
-              className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all"
+              className="action-card group"
             >
-              <div className="flex items-center">
-                <Clock className="h-5 w-5 text-green-600 mr-3" />
-                <div>
-                  <h3 className="font-medium text-gray-900">
-                    {user.role === 'admin' ? 'Gestionar Reservas' : 'Mis Reservas'}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {user.role === 'admin' ? 'Ver todas las reservas del sistema' : 'Administra tus reservas'}
-                  </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-success-500 to-success-600 shadow-md group-hover:shadow-lg transition-shadow">
+                    <Clock className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-neutral-900 group-hover:text-primary-700 transition-colors">
+                      {user.role === 'admin' ? 'Gestionar Reservas' : 'Mis Reservas'}
+                    </h3>
+                    <p className="text-sm text-neutral-600">
+                      {user.role === 'admin' ? 'Ver todas las reservas del sistema' : 'Administra tus reservas'}
+                    </p>
+                  </div>
                 </div>
+                <div className="text-primary-600 group-hover:translate-x-1 transition-transform">→</div>
               </div>
             </button>
 
             <button
               onClick={() => onViewChange('profile')}
-              className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all"
+              className="action-card group"
             >
-              <div className="flex items-center">
-                <UserCircle className="h-5 w-5 text-indigo-600 mr-3" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Mi Perfil</h3>
-                  <p className="text-sm text-gray-500">Actualiza tus datos personales y de contacto</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-md group-hover:shadow-lg transition-shadow">
+                    <UserCircle className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-neutral-900 group-hover:text-primary-700 transition-colors">Mi Perfil</h3>
+                    <p className="text-sm text-neutral-600">Actualiza tus datos personales y de contacto</p>
+                  </div>
                 </div>
+                <div className="text-primary-600 group-hover:translate-x-1 transition-transform">→</div>
               </div>
             </button>
 
             {user.role === 'admin' && (
               <button
                 onClick={() => onViewChange('admin-panel')}
-                className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition-all"
+                className="action-card group"
               >
-                <div className="flex items-center">
-                  <Users className="h-5 w-5 text-purple-600 mr-3" />
-                  <div>
-                    <h3 className="font-medium text-gray-900">Panel Administrativo</h3>
-                    <p className="text-sm text-gray-500">Gestionar espacios y configuración</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 shadow-md group-hover:shadow-lg transition-shadow">
+                      <Users className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-neutral-900 group-hover:text-primary-700 transition-colors">Panel Administrativo</h3>
+                      <p className="text-sm text-neutral-600">Gestionar espacios y configuración</p>
+                    </div>
                   </div>
+                  <div className="text-primary-600 group-hover:translate-x-1 transition-transform">→</div>
                 </div>
               </button>
             )}
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            {user.role === 'admin' ? 'Actividad Reciente' : 'Próximas Reservas'}
-          </h2>
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-md border border-neutral-100/50 p-6 hover:shadow-lg transition-all duration-300 animate-slide-in-up" style={{ animationDelay: '350ms' }}>
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-success-500 to-success-600 flex items-center justify-center shadow-md">
+              <Clock className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-neutral-900">
+              {user.role === 'admin' ? 'Actividad Reciente' : 'Próximas Reservas'}
+            </h2>
+          </div>
           
           {user.role === 'admin' ? (
             <div className="space-y-4">
               {todayReservations.slice(0, 5).map((reservation) => (
-                <div key={reservation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{reservation.spaceName}</h3>
-                    <p className="text-sm text-gray-500">
-                      {reservation.userName} - {reservation.startTime} - {reservation.endTime}
+                <div key={reservation.id} className="flex items-center justify-between p-4 bg-gradient-to-br from-neutral-50 to-white rounded-xl border border-neutral-200/50 hover:shadow-md transition-all duration-300 hover:border-primary-300">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-neutral-900">{reservation.spaceName}</h3>
+                    <p className="text-sm text-neutral-600 mt-1">
+                      {reservation.userName} • {reservation.startTime} - {reservation.endTime}
                     </p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    reservation.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                    reservation.status === 'upcoming' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
+                  <span className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${
+                    reservation.status === 'confirmed' ? 'bg-gradient-to-r from-success-100 to-success-200 text-success-800 border border-success-300' :
+                    reservation.status === 'upcoming' ? 'bg-gradient-to-r from-primary-100 to-primary-200 text-primary-800 border border-primary-300' :
+                    'bg-gradient-to-r from-neutral-100 to-neutral-200 text-neutral-800 border border-neutral-300'
                   }`}>
                     {reservation.status === 'confirmed' ? 'Confirmada' :
                      reservation.status === 'upcoming' ? 'Próxima' : 'En progreso'}
@@ -247,40 +290,48 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
                 </div>
               ))}
               {todayReservations.length === 0 && (
-                <p className="text-gray-500 text-center py-4">
-                  No hay reservas para hoy
-                </p>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-neutral-100 to-neutral-200 flex items-center justify-center">
+                    <Calendar className="h-8 w-8 text-neutral-400" />
+                  </div>
+                  <p className="text-neutral-600 font-medium">
+                    No hay reservas para hoy
+                  </p>
+                </div>
               )}
             </div>
           ) : (
             <div className="space-y-4">
               {upcomingReservations.map((reservation) => (
-                <div key={reservation.id} className="p-4 border border-gray-200 rounded-lg">
+                <div key={reservation.id} className="p-4 bg-gradient-to-br from-neutral-50 to-white rounded-xl border border-neutral-200/50 hover:shadow-md transition-all duration-300 hover:border-primary-300">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium text-gray-900">{reservation.spaceName}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      isToday(reservation.date) ? 'bg-red-100 text-red-800' :
-                      isTomorrow(reservation.date) ? 'bg-orange-100 text-orange-800' :
-                      'bg-blue-100 text-blue-800'
+                    <h3 className="font-semibold text-neutral-900 flex-1">{reservation.spaceName}</h3>
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm ${
+                      isToday(reservation.date) ? 'bg-gradient-to-r from-error-100 to-error-200 text-error-800 border border-error-300' :
+                      isTomorrow(reservation.date) ? 'bg-gradient-to-r from-warning-100 to-warning-200 text-warning-800 border border-warning-300' :
+                      'bg-gradient-to-r from-primary-100 to-primary-200 text-primary-800 border border-primary-300'
                     }`}>
                       {isToday(reservation.date) ? 'Hoy' :
                        isTomorrow(reservation.date) ? 'Mañana' :
                        formatDate(reservation.date)}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">
-                    {reservation.startTime} - {reservation.endTime}
-                  </p>
-                  <p className="text-sm text-gray-500">{reservation.event}</p>
+                  <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1">
+                    <Clock className="h-4 w-4" />
+                    <span>{reservation.startTime} - {reservation.endTime}</span>
+                  </div>
+                  <p className="text-sm text-neutral-700 font-medium">{reservation.event}</p>
                 </div>
               ))}
               {upcomingReservations.length === 0 && (
-                <div className="text-center py-6">
-                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500">No tienes reservas próximas</p>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-neutral-100 to-neutral-200 flex items-center justify-center">
+                    <Calendar className="h-8 w-8 text-neutral-400" />
+                  </div>
+                  <p className="text-neutral-600 mb-4 font-medium">No tienes reservas próximas</p>
                   <button
                     onClick={() => onViewChange('spaces')}
-                    className="mt-2 text-blue-600 hover:text-blue-800 font-medium"
+                    className="btn btn-primary"
                   >
                     Hacer una reserva
                   </button>

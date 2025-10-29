@@ -76,7 +76,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30">
       <Header currentView={currentView} onViewChange={setCurrentView} />
       <main className="animate-fade-in">
         {renderCurrentView()}
