@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Reservation, ReservationContextType } from '../types';
-import { supabase } from '../lib/supabase';
 import { timeToMinutes } from '../utils/dateUtils';
 import { useAuth } from './AuthContext';
+import { storage, STORAGE_KEYS, generateId } from '../utils/storage';
+import { sampleReservations } from '../data/initialData';
 
 const ReservationContext = createContext<ReservationContextType | undefined>(undefined);
 
@@ -18,12 +19,17 @@ interface ReservationProviderProps {
   children: ReactNode;
 }
 
+interface SystemSettings {
+  maxAdvanceDays: number;
+  maxConcurrentReservations: number;
+}
+
 export const ReservationProvider: React.FC<ReservationProviderProps> = ({ children }) => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [reservationsError, setReservationsError] = useState<string | null>(null);
-  const [maxAdvanceDays, setMaxAdvanceDays] = useState<number | null>(null);
-  const [maxConcurrentReservations, setMaxConcurrentReservations] = useState<number | null>(null);
-  const [isSettingsLoading, setIsSettingsLoading] = useState<boolean>(true);
+  const [maxAdvanceDays, setMaxAdvanceDays] = useState<number | null>(30);
+  const [maxConcurrentReservations, setMaxConcurrentReservations] = useState<number | null>(3);
+  const [isSettingsLoading, setIsSettingsLoading] = useState<boolean>(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const { user, isLoading: isAuthLoading } = useAuth();
 
@@ -40,31 +46,20 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
       return;
     }
 
-    const loadSystemSettings = async () => {
-      setIsSettingsLoading(true);
-      setSettingsError(null);
-
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('max_advance_days, max_concurrent_reservations')
-        .eq('id', 'global')
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error loading system settings:', error);
-        setSettingsError('No se pudieron cargar las configuraciones del sistema.');
-        setMaxAdvanceDays(null);
-        setMaxConcurrentReservations(null);
-        setIsSettingsLoading(false);
-        return;
-      }
-
-      setMaxAdvanceDays(data?.max_advance_days ?? null);
-      setMaxConcurrentReservations(data?.max_concurrent_reservations ?? null);
-      setIsSettingsLoading(false);
-    };
-
-    loadSystemSettings();
+    const settings = storage.get<SystemSettings>('community_spaces_settings');
+    if (!settings) {
+      const defaultSettings: SystemSettings = {
+        maxAdvanceDays: 30,
+        maxConcurrentReservations: 3
+      };
+      storage.set('community_spaces_settings', defaultSettings);
+      setMaxAdvanceDays(defaultSettings.maxAdvanceDays);
+      setMaxConcurrentReservations(defaultSettings.maxConcurrentReservations);
+    } else {
+      setMaxAdvanceDays(settings.maxAdvanceDays);
+      setMaxConcurrentReservations(settings.maxConcurrentReservations);
+    }
+    setIsSettingsLoading(false);
   }, [isAuthLoading, user]);
 
   const loadReservations = useCallback(async () => {
@@ -73,52 +68,19 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
       return;
     }
 
-    const selectFields = user.role === 'admin'
-      ? `
-        *,
-        spaces(name),
-        profiles(full_name, phone, identification_number, email)
-      `
-      : `
-        *,
-        spaces(name)
-      `;
+    try {
+      let storedReservations = storage.get<Reservation[]>(STORAGE_KEYS.RESERVATIONS);
 
-    const query = supabase
-      .from('reservations')
-      .select(selectFields);
+      if (!storedReservations || storedReservations.length === 0) {
+        storage.set(STORAGE_KEYS.RESERVATIONS, sampleReservations);
+        storedReservations = sampleReservations;
+      }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
+      setReservations(storedReservations);
+      setReservationsError(null);
+    } catch (error) {
       console.error('Error loading reservations:', error);
       setReservationsError('No se pudieron cargar las reservas. Por favor, intenta nuevamente.');
-      return;
-    }
-
-    if (data) {
-      const formattedReservations: Reservation[] = data.map(reservation => {
-        const profile = user.role === 'admin'
-          ? (reservation as any)?.profiles as { full_name?: string; phone?: string } | null | undefined
-          : null;
-
-        return {
-          id: reservation.id,
-          spaceId: reservation.space_id,
-          spaceName: (reservation.spaces as any)?.name || '',
-          userId: reservation.user_id,
-          userName: profile?.full_name || '',
-          userContact: profile?.phone || '',
-          date: reservation.date,
-          startTime: reservation.start_time,
-          endTime: reservation.end_time,
-          event: reservation.event ?? '',
-          status: reservation.status as any,
-          createdAt: reservation.created_at
-        };
-      });
-      setReservations(formattedReservations);
-      setReservationsError(null);
     }
   }, [user]);
 
@@ -134,17 +96,6 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
     }
 
     loadReservations();
-
-    const channel = supabase
-      .channel('reservations-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
-        loadReservations();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [isAuthLoading, loadReservations, user]);
 
   const addReservation = async (reservationData: Omit<Reservation, 'id' | 'createdAt' | 'status'>): Promise<boolean> => {
@@ -152,41 +103,40 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
       return false;
     }
 
-    const { error } = await supabase
-      .from('reservations')
-      .insert({
-        space_id: reservationData.spaceId,
-        user_id: reservationData.userId,
-        date: reservationData.date,
-        start_time: reservationData.startTime,
-        end_time: reservationData.endTime,
-        event: reservationData.event,
-        status: 'confirmed'
-      });
+    try {
+      const reservations = storage.get<Reservation[]>(STORAGE_KEYS.RESERVATIONS) || [];
+      const newReservation: Reservation = {
+        ...reservationData,
+        id: generateId(),
+        status: 'confirmed',
+        createdAt: new Date().toISOString()
+      };
 
-    if (!error) {
+      reservations.push(newReservation);
+      storage.set(STORAGE_KEYS.RESERVATIONS, reservations);
       await loadReservations();
       return true;
+    } catch (error) {
+      console.error('Error adding reservation:', error);
+      setReservationsError('No se pudo crear la reserva. Intenta nuevamente.');
+      return false;
     }
-    
-    console.error('Error adding reservation:', error);
-    setReservationsError('No se pudo crear la reserva. Intenta nuevamente.');
-    return false;
   };
 
   const cancelReservation = async (id: string) => {
-    const { error } = await supabase
-      .from('reservations')
-      .update({ status: 'cancelled' })
-      .eq('id', id);
+    try {
+      const reservations = storage.get<Reservation[]>(STORAGE_KEYS.RESERVATIONS) || [];
+      const reservationIndex = reservations.findIndex(r => r.id === id);
 
-    if (!error) {
-      await loadReservations();
-      return;
+      if (reservationIndex !== -1) {
+        reservations[reservationIndex].status = 'cancelled';
+        storage.set(STORAGE_KEYS.RESERVATIONS, reservations);
+        await loadReservations();
+      }
+    } catch (error) {
+      console.error('Error cancelling reservation:', error);
+      setReservationsError('No se pudo cancelar la reserva. Por favor, intenta nuevamente.');
     }
-
-    console.error('Error cancelling reservation:', error);
-    setReservationsError('No se pudo cancelar la reserva. Por favor, intenta nuevamente.');
   };
 
   const getUserReservations = (userId: string): Reservation[] => {
@@ -205,70 +155,33 @@ export const ReservationProvider: React.FC<ReservationProviderProps> = ({ childr
   };
 
   const fetchSpaceSchedule = useCallback(async (spaceId: string, date: string): Promise<Reservation[]> => {
-    const selectFields = user?.role === 'admin'
-      ? `
-        *,
-        spaces(name),
-        profiles(full_name, phone, identification_number, email)
-      `
-      : `
-        *,
-        spaces(name)
-      `;
+    const reservations = storage.get<Reservation[]>(STORAGE_KEYS.RESERVATIONS) || [];
 
-    const { data, error } = await supabase
-      .from('reservations')
-      .select(selectFields)
-      .eq('space_id', spaceId)
-      .eq('date', date)
-      .neq('status', 'cancelled')
-      .order('start_time', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching space schedule:', error);
-      throw new Error('No se pudieron cargar las reservas del espacio.');
-    }
-
-    if (!data) {
-      return [];
-    }
-
-    return data.map(reservation => {
-      const profile = (reservation as any)?.profiles as { full_name?: string; phone?: string } | null | undefined;
-
-      return {
-        id: reservation.id,
-        spaceId: reservation.space_id,
-        spaceName: (reservation.spaces as any)?.name || '',
-        userId: reservation.user_id,
-        userName: profile?.full_name || '',
-        userContact: profile?.phone || '',
-        date: reservation.date,
-        startTime: reservation.start_time,
-        endTime: reservation.end_time,
-        event: reservation.event ?? '',
-        status: reservation.status as Reservation['status'],
-        createdAt: reservation.created_at
-      };
-    });
-  }, [user?.role]);
+    return reservations
+      .filter(r =>
+        r.spaceId === spaceId &&
+        r.date === date &&
+        r.status !== 'cancelled'
+      )
+      .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+  }, []);
 
   const isTimeSlotAvailable = async (spaceId: string, date: string, startTime: string, endTime: string): Promise<boolean> => {
-    const { data } = await supabase
-      .from('reservations')
-      .select('start_time, end_time')
-      .eq('space_id', spaceId)
-      .eq('date', date)
-      .neq('status', 'cancelled');
+    const reservations = storage.get<Reservation[]>(STORAGE_KEYS.RESERVATIONS) || [];
+    const spaceReservations = reservations.filter(r =>
+      r.spaceId === spaceId &&
+      r.date === date &&
+      r.status !== 'cancelled'
+    );
 
-    if (!data || data.length === 0) return true;
+    if (spaceReservations.length === 0) return true;
 
     const requestStartMinutes = timeToMinutes(startTime);
     const requestEndMinutes = timeToMinutes(endTime);
 
-    return !data.some(reservation => {
-      const reservationStartMinutes = timeToMinutes(reservation.start_time);
-      const reservationEndMinutes = timeToMinutes(reservation.end_time);
+    return !spaceReservations.some(reservation => {
+      const reservationStartMinutes = timeToMinutes(reservation.startTime);
+      const reservationEndMinutes = timeToMinutes(reservation.endTime);
 
       return (
         (requestStartMinutes >= reservationStartMinutes && requestStartMinutes < reservationEndMinutes) ||

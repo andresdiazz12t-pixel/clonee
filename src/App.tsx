@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SpaceProvider } from './context/SpaceContext';
 import { ReservationProvider } from './context/ReservationContext';
+import { ToastProvider } from './hooks/useToast';
+import { LoadingSpinner } from './components/UI/LoadingSpinner';
 import Header from './components/Layout/Header';
 import LoginForm from './components/Auth/LoginForm';
 import Dashboard from './components/Dashboard/Dashboard';
@@ -19,14 +21,7 @@ const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState('dashboard');
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen text="Cargando..." size="lg" />;
   }
 
   if (!user) {
@@ -81,9 +76,9 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-50">
       <Header currentView={currentView} onViewChange={setCurrentView} />
-      <main>
+      <main className="animate-fade-in">
         {renderCurrentView()}
       </main>
     </div>
@@ -92,13 +87,15 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <SpaceProvider>
-        <ReservationProvider>
-          <AppContent />
-        </ReservationProvider>
-      </SpaceProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <SpaceProvider>
+          <ReservationProvider>
+            <AppContent />
+          </ReservationProvider>
+        </SpaceProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 };
 
