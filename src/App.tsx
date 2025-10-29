@@ -5,6 +5,7 @@ import { ReservationProvider } from './context/ReservationContext';
 import { ToastProvider } from './hooks/useToast';
 import { LoadingSpinner } from './components/UI/LoadingSpinner';
 import Header from './components/Layout/Header';
+import Breadcrumbs from './components/UI/Breadcrumbs';
 import LoginForm from './components/Auth/LoginForm';
 import Dashboard from './components/Dashboard/Dashboard';
 import SpacesList from './components/Spaces/SpacesList';
@@ -27,6 +28,31 @@ const AppContent: React.FC = () => {
   if (!user) {
     return <LoginForm />;
   }
+
+  const getBreadcrumbs = () => {
+    const breadcrumbsMap: Record<string, { label: string; view?: string }[]> = {
+      'dashboard': [],
+      'spaces': [{ label: 'Espacios' }],
+      'my-reservations': [{ label: 'Mis Reservas' }],
+      'all-reservations': [{ label: 'Todas las Reservas' }],
+      'calendar': [{ label: 'Calendario' }],
+      'admin-panel': [{ label: 'Administración' }],
+      'profile': [{ label: 'Mi Perfil' }],
+      'admin-users': [
+        { label: 'Administración', view: 'admin-panel' },
+        { label: 'Gestión de Usuarios' }
+      ],
+      'admin-reports': [
+        { label: 'Administración', view: 'admin-panel' },
+        { label: 'Reportes' }
+      ],
+      'admin-advanced-settings': [
+        { label: 'Administración', view: 'admin-panel' },
+        { label: 'Configuración Avanzada' }
+      ],
+    };
+    return breadcrumbsMap[currentView] || [];
+  };
 
   const renderCurrentView = () => {
     switch (currentView) {
@@ -75,10 +101,17 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const breadcrumbs = getBreadcrumbs();
+
   return (
     <div className="min-h-screen bg-neutral-50">
       <Header currentView={currentView} onViewChange={setCurrentView} />
       <main className="animate-fade-in">
+        {breadcrumbs.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+            <Breadcrumbs items={breadcrumbs} onNavigate={setCurrentView} />
+          </div>
+        )}
         {renderCurrentView()}
       </main>
     </div>

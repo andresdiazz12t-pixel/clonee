@@ -3,6 +3,7 @@ import { Calendar, Clock, MapPin, X, Filter, Search, User } from 'lucide-react';
 import { useReservations } from '../../context/ReservationContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate, isToday, isTomorrow, isWithin24Hours, parseLocalDate } from '../../utils/dateUtils';
+import ErrorAlert from '../UI/ErrorAlert';
 
 interface ReservationsListProps {
   isAdminView?: boolean;
@@ -84,14 +85,12 @@ const ReservationsList: React.FC<ReservationsListProps> = ({ isAdminView = false
       </div>
 
       {reservationsError && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
-          <p className="font-medium">{reservationsError}</p>
-          <button
-            onClick={reloadReservations}
-            className="mt-3 inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors"
-          >
-            Reintentar
-          </button>
+        <div className="mb-6">
+          <ErrorAlert
+            title="Error al cargar reservas"
+            message={reservationsError}
+            onRetry={reloadReservations}
+          />
         </div>
       )}
 

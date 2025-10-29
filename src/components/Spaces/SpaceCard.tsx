@@ -123,9 +123,9 @@ const SpaceCard: React.FC<SpaceCardProps> = ({ space, onReserve, onEdit, onDelet
         {space.isActive && onReserve && (
           <button
             onClick={() => onReserve(space.id)}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all flex items-center justify-center space-x-2 group"
           >
-            <Calendar className="h-4 w-4" />
+            <Calendar className="h-4 w-4 group-hover:scale-110 transition-transform" />
             <span>Reservar</span>
           </button>
         )}

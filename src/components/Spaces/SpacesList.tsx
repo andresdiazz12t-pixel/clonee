@@ -6,6 +6,7 @@ import { Space } from '../../types';
 import SpaceCard from './SpaceCard';
 import SpaceForm from './SpaceForm';
 import ReservationModal from '../Reservations/ReservationModal';
+import ErrorAlert from '../UI/ErrorAlert';
 
 const SpacesList: React.FC = () => {
   const { user } = useAuth();
@@ -101,14 +102,12 @@ const SpacesList: React.FC = () => {
       </div>
 
       {spacesError && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg p-4">
-          <p className="font-medium">{spacesError}</p>
-          <button
-            onClick={() => { void loadSpaces(); }}
-            className="mt-3 inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors"
-          >
-            Reintentar
-          </button>
+        <div className="mb-6">
+          <ErrorAlert
+            title="Error al cargar espacios"
+            message={spacesError}
+            onRetry={() => { void loadSpaces(); }}
+          />
         </div>
       )}
 
@@ -150,14 +149,21 @@ const SpacesList: React.FC = () => {
       {/* Spaces Grid */}
       {isInitialLoad ? (
         <div className="text-center py-12">
-          <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 max-w-md mx-auto">
+            <div className="relative mb-6">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-100 border-t-blue-600 mx-auto"></div>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Cargando espacios disponibles
             </h3>
-            <p className="text-gray-600">
+            <p className="text-sm text-gray-600">
               Esto puede tardar unos segundos mientras obtenemos la información desde el servidor.
             </p>
+            <div className="mt-4 flex justify-center gap-1">
+              <span className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+              <span className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+              <span className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+            </div>
           </div>
         </div>
       ) : filteredSpaces.length > 0 ? (

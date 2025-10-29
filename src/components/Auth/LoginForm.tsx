@@ -180,8 +180,8 @@ const LoginForm: React.FC = () => {
                     placeholder="123456789"
                   />
                   {errors.identificationNumber && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1 animate-slide-in">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
                       {errors.identificationNumber}
                     </p>
                   )}
@@ -214,8 +214,8 @@ const LoginForm: React.FC = () => {
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1 animate-slide-in">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
                       {errors.password}
                     </p>
                   )}
@@ -263,8 +263,8 @@ const LoginForm: React.FC = () => {
                     autoComplete="name"
                   />
                   {errors.fullName && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1 animate-slide-in">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
                       {errors.fullName}
                     </p>
                   )}
@@ -289,8 +289,8 @@ const LoginForm: React.FC = () => {
                     autoComplete="email"
                   />
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1 animate-slide-in">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
                       {errors.email}
                     </p>
                   )}
@@ -316,8 +316,8 @@ const LoginForm: React.FC = () => {
                     autoComplete="off"
                   />
                   {errors.identificationNumber && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1 animate-slide-in">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
                       {errors.identificationNumber}
                     </p>
                   )}
@@ -342,8 +342,8 @@ const LoginForm: React.FC = () => {
                     autoComplete="tel"
                   />
                   {errors.phone && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1 animate-slide-in">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
                       {errors.phone}
                     </p>
                   )}
@@ -377,8 +377,8 @@ const LoginForm: React.FC = () => {
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1 animate-slide-in">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
                       {errors.password}
                     </p>
                   )}

@@ -51,14 +51,18 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
                   <button
                     key={item.id}
                     onClick={() => onViewChange(item.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative ${
                       currentView === item.id
                         ? 'text-primary-700 bg-primary-50 shadow-sm'
                         : 'text-neutral-700 hover:text-primary-600 hover:bg-neutral-50'
                     }`}
+                    aria-current={currentView === item.id ? 'page' : undefined}
                   >
                     <Icon className="h-4 w-4" />
                     <span>{item.label}</span>
+                    {currentView === item.id && (
+                      <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-primary-600 rounded-full"></span>
+                    )}
                   </button>
                 );
               })}
