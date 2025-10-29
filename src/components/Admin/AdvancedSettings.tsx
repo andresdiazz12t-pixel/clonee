@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Settings } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { storage } from '../../utils/storage';
 
 type AdvancedSettingsProps = {
   onBack?: () => void;
 };
 
+interface SystemSettings {
+  maxAdvanceDays: number;
+  maxConcurrentReservations: number;
+  internalMessage: string;
+}
+
 const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ onBack }) => {
-  const [formValues, setFormValues] = useState({
+  const [formValues, setFormValues] = useState<SystemSettings>({
     maxAdvanceDays: 30,
     maxConcurrentReservations: 3,
     internalMessage: 'Recuerda confirmar la disponibilidad antes de aprobar una reserva especial.'
@@ -24,27 +30,30 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ onBack }) => {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('system_settings')
-        .select('id, max_advance_days, max_concurrent_reservations, internal_message')
-        .maybeSingle();
+      try {
+        const settings = storage.get<SystemSettings>('community_spaces_settings');
 
-      if (!isMounted) {
-        return;
+        if (!isMounted) {
+          return;
+        }
+
+        if (settings) {
+          setFormValues({
+            maxAdvanceDays: settings.maxAdvanceDays ?? 30,
+            maxConcurrentReservations: settings.maxConcurrentReservations ?? 3,
+            internalMessage:
+              settings.internalMessage ?? 'Recuerda confirmar la disponibilidad antes de aprobar una reserva especial.'
+          });
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError('No se pudo cargar la configuración. Inténtalo nuevamente.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-
-      if (fetchError) {
-        setError('No se pudo cargar la configuración. Inténtalo nuevamente.');
-      } else if (data) {
-        setFormValues({
-          maxAdvanceDays: data.max_advance_days ?? 30,
-          maxConcurrentReservations: data.max_concurrent_reservations ?? 3,
-          internalMessage:
-            data.internal_message ?? 'Recuerda confirmar la disponibilidad antes de aprobar una reserva especial.'
-        });
-      }
-
-      setIsLoading(false);
     };
 
     loadSettings();
@@ -74,23 +83,14 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ onBack }) => {
     setError(null);
     setSuccess(null);
 
-    const { error: saveError } = await supabase.from('system_settings').upsert(
-      {
-        id: 'global',
-        max_advance_days: formValues.maxAdvanceDays,
-        max_concurrent_reservations: formValues.maxConcurrentReservations,
-        internal_message: formValues.internalMessage
-      },
-      { onConflict: 'id' }
-    );
-
-    if (saveError) {
-      setError('No se pudo guardar la configuración. Inténtalo nuevamente.');
-    } else {
+    try {
+      storage.set('community_spaces_settings', formValues);
       setSuccess('Configuración guardada correctamente.');
+    } catch (err) {
+      setError('No se pudo guardar la configuración. Inténtalo nuevamente.');
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsSaving(false);
   };
 
   return (

@@ -1,24 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Users } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { storage, STORAGE_KEYS } from '../../utils/storage';
+import { User } from '../../types';
 
 type UserManagementProps = {
   onBack?: () => void;
 };
 
-type Profile = {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  phone: string | null;
-  identification_number: string | null;
-  role: 'admin' | 'user' | null;
-  created_at: string | null;
-  is_active: boolean | null;
-};
+interface StoredUser extends User {
+  password: string;
+}
 
 const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<StoredUser[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -29,16 +23,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     try {
       setLoading(true);
       setError(null);
-      const { data, error: fetchError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, phone, identification_number, role, is_active, created_at')
-        .order('created_at', { ascending: false });
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      setUsers(data ?? []);
+      const storedUsers = storage.get<StoredUser[]>(STORAGE_KEYS.USERS) || [];
+      const sortedUsers = [...storedUsers].sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setUsers(sortedUsers);
     } catch (fetchErr) {
       const message = fetchErr instanceof Error ? fetchErr.message : 'No se pudieron cargar los usuarios.';
       setError(message);
@@ -52,10 +41,10 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
       roleFilter === 'all' ||
       (roleFilter === 'admin'
         ? user.role === 'admin'
-        : user.role === 'user' || user.role === null);
+        : user.role === 'user');
     const matchesStatus =
       statusFilter === 'all' ||
-      (statusFilter === 'active' ? user.is_active === true : user.is_active === false);
+      (statusFilter === 'active' ? user.isActive === true : user.isActive === false);
 
     return matchesRole && matchesStatus;
   });
@@ -64,7 +53,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     void fetchUsers();
   }, [fetchUsers]);
 
-  const handleToggleRole = async (user: Profile) => {
+  const handleToggleRole = async (user: StoredUser) => {
     if (!user.id) return;
 
     const currentRole = user.role === 'admin' ? 'admin' : 'user';
@@ -73,13 +62,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     try {
       setUpdatingUserId(user.id);
       setError(null);
-      const { error: rpcError } = await supabase.rpc('set_user_role', {
-        user_id: user.id,
-        new_role: nextRole,
-      });
+      const storedUsers = storage.get<StoredUser[]>(STORAGE_KEYS.USERS) || [];
+      const userIndex = storedUsers.findIndex(u => u.id === user.id);
 
-      if (rpcError) {
-        throw rpcError;
+      if (userIndex !== -1) {
+        storedUsers[userIndex].role = nextRole;
+        storage.set(STORAGE_KEYS.USERS, storedUsers);
       }
 
       await fetchUsers();
@@ -91,22 +79,21 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
     }
   };
 
-  const handleToggleActive = async (user: Profile) => {
+  const handleToggleActive = async (user: StoredUser) => {
     if (!user.id) return;
 
-    const currentState = user.is_active ?? false;
+    const currentState = user.isActive ?? false;
     const nextState = !currentState;
 
     try {
       setUpdatingUserId(user.id);
       setError(null);
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ is_active: nextState })
-        .eq('id', user.id);
+      const storedUsers = storage.get<StoredUser[]>(STORAGE_KEYS.USERS) || [];
+      const userIndex = storedUsers.findIndex(u => u.id === user.id);
 
-      if (updateError) {
-        throw updateError;
+      if (userIndex !== -1) {
+        storedUsers[userIndex].isActive = nextState;
+        storage.set(STORAGE_KEYS.USERS, storedUsers);
       }
 
       await fetchUsers();
@@ -195,19 +182,19 @@ const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
 
         {!loading && !error &&
           filteredUsers.map((user) => {
-            const isActive = user.is_active ?? false;
+            const isActive = user.isActive ?? false;
 
             return (
               <div key={user.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <p className="font-medium text-gray-900">{user.full_name ?? 'Sin nombre'}</p>
+                  <p className="font-medium text-gray-900">{user.fullName ?? 'Sin nombre'}</p>
                   <p className="text-sm text-gray-500">{user.email ?? 'Sin correo'}</p>
                   <p className="text-sm text-gray-500">
-                    Identificación: {user.identification_number ?? 'N/D'}
+                    Identificación: {user.identificationNumber ?? 'N/D'}
                   </p>
                   <p className="text-sm text-gray-500">Teléfono: {user.phone ?? 'N/D'}</p>
                   <p className="text-sm text-gray-400">
-                    Registrado el {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/D'}
+                    Registrado el {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/D'}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

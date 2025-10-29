@@ -4,7 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useSpaces } from '../../context/SpaceContext';
 import { useReservations } from '../../context/ReservationContext';
 import { formatDate, isToday, isTomorrow, parseLocalDate } from '../../utils/dateUtils';
-import { supabase } from '../../lib/supabase';
+import { storage, STORAGE_KEYS } from '../../utils/storage';
+import { User as UserType } from '../../types';
 
 interface DashboardProps {
   onViewChange: (view: string) => void;
@@ -24,14 +25,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
     const fetchUserCount = async () => {
       setIsLoadingUserCount(true);
       try {
-        const { error, count } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
-
-        if (error) throw error;
+        const users = storage.get<UserType[]>(STORAGE_KEYS.USERS) || [];
 
         if (isMounted) {
-          setUserCount(count ?? 0);
+          setUserCount(users.length);
           setUserCountError(null);
         }
       } catch (error) {
