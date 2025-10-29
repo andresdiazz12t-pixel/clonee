@@ -77,12 +77,12 @@ const SpacesList: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 animate-slide-in-up">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-neutral-900">Espacios Comunitarios</h1>
-          <p className="text-neutral-600 mt-2 text-base">
-            {user?.role === 'admin'
+          <h1 className="text-3xl font-bold text-gray-900">Espacios Comunitarios</h1>
+          <p className="text-gray-600 mt-2">
+            {user?.role === 'admin' 
               ? 'Gestiona los espacios disponibles para la comunidad'
               : 'Encuentra y reserva el espacio perfecto para tu evento'
             }
@@ -92,9 +92,9 @@ const SpacesList: React.FC = () => {
         {user?.role === 'admin' && (
           <button
             onClick={() => setShowSpaceForm(true)}
-            className="btn btn-primary flex items-center gap-2"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             <span>Nuevo Espacio</span>
           </button>
         )}
@@ -112,25 +112,26 @@ const SpacesList: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-md border border-neutral-100/50 p-6 mb-8 hover:shadow-lg transition-all duration-300 animate-slide-in-up" style={{ animationDelay: '100ms' }}>
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-neutral-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar espacios por nombre o descripción..."
+              placeholder="Buscar espacios..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input pl-12"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="relative">
-            <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-neutral-400" />
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="input pl-12 appearance-none cursor-pointer"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
             >
               {spaceTypes.map(type => (
                 <option key={type.value} value={type.value}>
@@ -141,41 +142,20 @@ const SpacesList: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm font-medium text-neutral-700">
-            {isUpdatingSpaces ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
-                Actualizando espacios...
-              </span>
-            ) : (
-              `Mostrando ${filteredSpaces.length} de ${spaces.length} espacios`
-            )}
-          </p>
-          {(searchTerm || selectedType) && (
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedType('');
-              }}
-              className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
-            >
-              Limpiar filtros
-            </button>
-          )}
+        <div className="mt-4 text-sm text-gray-600">
+          {isUpdatingSpaces ? 'Actualizando espacios...' : `Mostrando ${filteredSpaces.length} de ${spaces.length} espacios`}
         </div>
       </div>
 
+      {/* Spaces Grid */}
       {isInitialLoad ? (
-        <div className="text-center py-16 animate-scale-in">
-          <div className="bg-gradient-to-br from-neutral-50 to-white rounded-2xl p-12 max-w-md mx-auto border border-neutral-100/50 shadow-md">
-            <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-glow">
-              <div className="animate-spin rounded-full h-8 w-8 border-3 border-white/30 border-t-white"></div>
-            </div>
-            <h3 className="text-xl font-bold text-neutral-900 mb-2">
+        <div className="text-center py-12">
+          <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
               Cargando espacios disponibles
             </h3>
-            <p className="text-neutral-600">
+            <p className="text-gray-600">
               Esto puede tardar unos segundos mientras obtenemos la información desde el servidor.
             </p>
           </div>
@@ -189,7 +169,7 @@ const SpacesList: React.FC = () => {
               </span>
             </div>
           ) : null}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredSpaces.map(space => (
               <SpaceCard
                 key={space.id}
@@ -202,15 +182,13 @@ const SpacesList: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="text-center py-16 animate-scale-in">
-          <div className="bg-gradient-to-br from-neutral-50 to-white rounded-2xl p-12 max-w-md mx-auto border border-neutral-100/50 shadow-md">
-            <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-neutral-100 to-neutral-200 flex items-center justify-center">
-              <Search className="h-8 w-8 text-neutral-400" />
-            </div>
-            <h3 className="text-xl font-bold text-neutral-900 mb-2">
+        <div className="text-center py-12">
+          <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+            <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
               No se encontraron espacios
             </h3>
-            <p className="text-neutral-600 mb-6">
+            <p className="text-gray-600 mb-4">
               Intenta cambiar los filtros o términos de búsqueda
             </p>
             {searchTerm || selectedType ? (
@@ -219,7 +197,7 @@ const SpacesList: React.FC = () => {
                   setSearchTerm('');
                   setSelectedType('');
                 }}
-                className="btn btn-primary"
+                className="text-blue-600 hover:text-blue-800 font-medium"
               >
                 Limpiar filtros
               </button>

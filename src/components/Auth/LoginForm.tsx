@@ -119,32 +119,29 @@ const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-neutral-50 flex items-center justify-center px-4 py-8">
-      <div className="max-w-md w-full animate-scale-in">
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-neutral-100/50">
-          <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 px-8 py-10 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMDUiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-40" />
-            <div className="relative">
-              <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-2xl ring-4 ring-white/20">
-                <LayoutGrid className="h-10 w-10 text-primary-600" />
-              </div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                Espacios Comunitarios
-              </h1>
-              <p className="text-primary-100 text-base">
-                Sistema de Gestión de Reservas
-              </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-primary-50 flex items-center justify-center px-4 py-8">
+      <div className="max-w-md w-full">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-8 py-8 text-center">
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <LayoutGrid className="h-9 w-9 text-primary-600" />
             </div>
+            <h1 className="text-2xl font-bold text-white mb-2">
+              Espacios Comunitarios
+            </h1>
+            <p className="text-primary-100 text-sm">
+              Sistema de Gestión de Reservas
+            </p>
           </div>
 
-          <div className="px-8 py-8">
-            <div className="flex gap-2 mb-6 p-1.5 bg-neutral-100 rounded-xl shadow-inner">
+          <div className="px-8 py-6">
+            <div className="flex gap-2 mb-6 p-1 bg-neutral-100 rounded-lg">
               <button
                 onClick={() => handleTabChange(true)}
-                className={`flex-1 py-3 px-4 text-sm font-semibold rounded-xl transition-all duration-300 ${
+                className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-200 ${
                   isLogin
-                    ? 'bg-white text-primary-700 shadow-md scale-[1.02]'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50'
+                    ? 'bg-white text-primary-700 shadow-sm'
+                    : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
                 <User className="h-4 w-4 inline mr-2" />
@@ -152,10 +149,10 @@ const LoginForm: React.FC = () => {
               </button>
               <button
                 onClick={() => handleTabChange(false)}
-                className={`flex-1 py-3 px-4 text-sm font-semibold rounded-xl transition-all duration-300 ${
+                className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-200 ${
                   !isLogin
-                    ? 'bg-white text-primary-700 shadow-md scale-[1.02]'
-                    : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50'
+                    ? 'bg-white text-primary-700 shadow-sm'
+                    : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
                 <UserPlus className="h-4 w-4 inline mr-2" />
@@ -239,12 +236,10 @@ const LoginForm: React.FC = () => {
                   )}
                 </button>
 
-                <div className="mt-6 p-4 bg-gradient-to-br from-primary-50 to-primary-100/50 rounded-xl border border-primary-200/60 shadow-sm">
-                  <p className="text-xs text-primary-900 font-semibold mb-2">Credenciales de prueba:</p>
-                  <div className="space-y-1">
-                    <p className="text-xs text-primary-800">ID: <span className="font-mono font-semibold">900123456</span></p>
-                    <p className="text-xs text-primary-800">Contraseña: <span className="font-mono font-semibold">admin123</span></p>
-                  </div>
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-xs text-blue-800 font-medium">Credenciales de prueba:</p>
+                  <p className="text-xs text-blue-700 mt-1">ID: <span className="font-mono">900123456</span></p>
+                  <p className="text-xs text-blue-700">Contraseña: <span className="font-mono">admin123</span></p>
                 </div>
               </form>
             ) : (

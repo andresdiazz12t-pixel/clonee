@@ -31,38 +31,33 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
       ];
 
   return (
-    <header className="bg-white/80 backdrop-blur-lg shadow-soft border-b border-neutral-200/50 sticky top-0 z-50 transition-all duration-300">
+    <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 rounded-xl flex items-center justify-center shadow-glow ring-2 ring-primary-500/20">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center shadow-md">
                 <LayoutGrid className="h-6 w-6 text-white" />
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-neutral-900 leading-none">
-                  Espacios Comunitarios
-                </h1>
-                <p className="text-xs text-neutral-500 mt-0.5">Sistema de Gestión</p>
-              </div>
+              <h1 className="text-xl font-bold text-neutral-900 hidden sm:block">
+                Espacios Comunitarios
+              </h1>
             </div>
 
-            <nav className="hidden lg:flex gap-2">
+            <nav className="hidden lg:flex gap-1">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <button
                     key={item.id}
                     onClick={() => onViewChange(item.id)}
-                    className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                       currentView === item.id
-                        ? 'text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-md scale-[1.02]'
-                        : 'text-neutral-700 hover:text-primary-700 hover:bg-primary-50/80 hover:shadow-sm'
+                        ? 'text-primary-700 bg-primary-50 shadow-sm'
+                        : 'text-neutral-700 hover:text-primary-600 hover:bg-neutral-50'
                     }`}
                   >
-                    <Icon className={`h-4 w-4 transition-transform duration-300 ${
-                      currentView === item.id ? '' : 'group-hover:scale-110'
-                    }`} />
+                    <Icon className="h-4 w-4" />
                     <span>{item.label}</span>
                   </button>
                 );
@@ -71,32 +66,27 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden lg:flex items-center gap-3 px-4 py-2.5 bg-gradient-to-br from-neutral-50 to-white rounded-xl border border-neutral-200/60 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 via-primary-500 to-primary-600 flex items-center justify-center text-white text-sm font-bold ring-2 ring-primary-500/20 shadow-md">
-                    {user.fullName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
-                    user.role === 'admin' ? 'bg-primary-600' : 'bg-success-500'
-                  }`} />
+            <div className="hidden lg:flex items-center gap-3 px-4 py-2 bg-neutral-50 rounded-lg">
+              <div className={`badge ${
+                user.role === 'admin'
+                  ? 'badge-primary'
+                  : 'badge-success'
+              }`}>
+                {user.role === 'admin' ? 'Admin' : 'Usuario'}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-semibold">
+                  {user.fullName.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-neutral-900 leading-tight">
-                    {user.fullName}
-                  </span>
-                  <span className={`text-xs font-medium ${
-                    user.role === 'admin' ? 'text-primary-600' : 'text-success-600'
-                  }`}>
-                    {user.role === 'admin' ? 'Administrador' : 'Usuario'}
-                  </span>
-                </div>
+                <span className="text-sm font-medium text-neutral-900">
+                  {user.fullName}
+                </span>
               </div>
             </div>
 
             <button
               onClick={logout}
-              className="hidden lg:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-neutral-700 hover:text-error-600 hover:bg-error-50 transition-all duration-300 border border-transparent hover:border-error-200 shadow-sm hover:shadow-md"
+              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-neutral-700 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
             >
               <LogOut className="h-4 w-4" />
               <span>Salir</span>
@@ -104,17 +94,17 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2.5 rounded-xl hover:bg-primary-50 transition-all duration-300 border border-transparent hover:border-primary-200 active:scale-95"
+              className="lg:hidden p-2 rounded-lg hover:bg-neutral-100 transition-colors"
             >
-              {mobileMenuOpen ? <X className="h-6 w-6 text-neutral-700" /> : <Menu className="h-6 w-6 text-neutral-700" />}
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>
       </div>
 
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-neutral-200/50 bg-white/95 backdrop-blur-lg animate-slide-in">
-          <div className="px-4 py-4 space-y-2">
+        <div className="lg:hidden border-t border-neutral-200 bg-white animate-slide-in">
+          <div className="px-4 py-4 space-y-1">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -124,10 +114,10 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
                     onViewChange(item.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                  className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                     currentView === item.id
-                      ? 'text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-md'
-                      : 'text-neutral-700 hover:bg-primary-50 hover:text-primary-700'
+                      ? 'text-primary-700 bg-primary-50 shadow-sm'
+                      : 'text-neutral-700 hover:bg-neutral-50'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
@@ -135,20 +125,15 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
                 </button>
               );
             })}
-            <div className="pt-4 mt-3 border-t border-neutral-200/60">
-              <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-br from-neutral-50 to-white rounded-xl border border-neutral-200/60 mb-3 shadow-sm">
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 via-primary-500 to-primary-600 flex items-center justify-center text-white font-bold ring-2 ring-primary-500/20 shadow-md">
-                    {user.fullName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
-                    user.role === 'admin' ? 'bg-primary-600' : 'bg-success-500'
-                  }`} />
+            <div className="pt-3 mt-3 border-t border-neutral-200">
+              <div className="flex items-center gap-3 px-4 py-3 bg-neutral-50 rounded-lg mb-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold">
+                  {user.fullName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-neutral-900 leading-tight">{user.fullName}</div>
-                  <div className={`text-xs font-medium mt-0.5 ${
-                    user.role === 'admin' ? 'text-primary-600' : 'text-success-600'
+                  <div className="text-sm font-medium text-neutral-900">{user.fullName}</div>
+                  <div className={`badge badge-sm ${
+                    user.role === 'admin' ? 'badge-primary' : 'badge-success'
                   }`}>
                     {user.role === 'admin' ? 'Administrador' : 'Usuario'}
                   </div>
@@ -159,7 +144,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
                   logout();
                   setMobileMenuOpen(false);
                 }}
-                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-semibold text-error-600 hover:bg-error-50 transition-all duration-300 border border-transparent hover:border-error-200 shadow-sm hover:shadow-md"
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-200"
               >
                 <LogOut className="h-5 w-5" />
                 <span>Cerrar Sesión</span>
